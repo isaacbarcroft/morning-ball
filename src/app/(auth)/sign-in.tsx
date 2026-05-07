@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View 
 import { Stack, useRouter } from 'expo-router';
 import { tokens } from '@/lib/theme';
 import { getControllers } from '@/controllers';
+import { logger } from '@/services/logger';
 
 export default function SignIn() {
   const router = useRouter();
@@ -11,7 +12,7 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
-    console.log('[diag] Send code button onPress fired');
+    logger.debug('sign-in submit pressed');
     if (submitting) return;
     setSubmitting(true);
     setError(null);
