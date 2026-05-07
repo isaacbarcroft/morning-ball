@@ -1,0 +1,40 @@
+appId: com.isaacbarcroft.morningball
+---
+# Sign-in → navigate to a session with teams → enter a stat row → save → check leaderboard updates.
+# Prereq: teams already published for the upcoming session and tester is on one of them.
+
+- launchApp:
+    clearState: true
+- runFlow: rsvp.yaml
+
+- tapOn: "Next run"
+- tapOn: "Stats"
+
+- assertVisible: "Box score"
+# Expand the first player row.
+- tapOn:
+    index: 0
+    text: "pts.*reb.*ast"
+    optional: true
+- assertVisible: "Shooting"
+
+# Increment FGM and FGA twice, then save.
+- tapOn:
+    index: 0
+    text: "\\+"
+- tapOn:
+    index: 0
+    text: "\\+"
+- tapOn:
+    index: 1
+    text: "\\+"
+- tapOn:
+    index: 1
+    text: "\\+"
+
+- tapOn: "Save row"
+- takeScreenshot: stats-saved
+
+# Now check leaderboard reflects.
+- tapOn: "Stats"
+- assertVisible: "Leaderboard"

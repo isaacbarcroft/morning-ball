@@ -1,0 +1,12 @@
+appId: com.isaacbarcroft.morningball
+---
+# Subflow used by other tests. Redeem the seeded MORNING code, set a display name.
+
+- assertVisible: "almost in"
+- inputText: "MORNING"
+- tapOn: "Redeem"
+
+- assertVisible: "Set up your profile"
+- tapOn: "Display name"
+- inputText: "Maestro Tester"
+- tapOn: "Save and continue"

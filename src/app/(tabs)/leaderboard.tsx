@@ -1,0 +1,267 @@
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack, useRouter } from 'expo-router';
+import { observer } from 'mobx-react-lite';
+import { tokens } from '@/lib/theme';
+import { useStores } from '@/hooks/use-stores';
+import { getControllers } from '@/controllers';
+import { supabase } from '@/services/supabase';
+import { Avatar } from '@/views/primitives/avatar';
+import type { LeaderboardEntry, LeaderboardStat } from '@/controllers/leaderboard-controller';
+
+type Range = 'all' | '30d';
+
+interface BodyArgs {
+  loading: boolean;
+  sorted: LeaderboardEntry[];
+  stat: LeaderboardStat;
+  statLabel: string;
+  isPercent: boolean;
+  profiles: { get(id: string): { display_name: string; avatar_url: string | null } | undefined };
+  onSelect: (profileId: string) => void;
+}
+
+const renderBody = (args: BodyArgs) => {
+  if (args.loading) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator color={tokens.color.primary} />
+      </View>
+    );
+  }
+  if (args.sorted.length === 0) {
+    return (
+      <View style={styles.empty}>
+        <Text style={styles.emptyTitle}>No stats yet</Text>
+        <Text style={styles.emptyBody}>
+          Box scores from completed sessions will populate the leaderboard.
+        </Text>
+      </View>
+    );
+  }
+  return (
+    <FlatList
+      data={args.sorted}
+      keyExtractor={(e) => e.profile_id}
+      contentContainerStyle={styles.list}
+      ItemSeparatorComponent={() => <View style={{ height: tokens.spacing.sm }} />}
+      renderItem={({ item, index }) => {
+        const profile = args.profiles.get(item.profile_id);
+        const value = item[args.stat];
+        const display = args.isPercent ? `${value.toFixed(1)}%` : value.toFixed(1);
+        return (
+          <TouchableOpacity style={styles.row} onPress={() => args.onSelect(item.profile_id)}>
+            <Text style={styles.rank}>{index + 1}</Text>
+            <Avatar
+              name={profile?.display_name ?? '?'}
+              url={profile?.avatar_url ?? null}
+              size={36}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.name}>{profile?.display_name ?? '—'}</Text>
+              <Text style={styles.gameCount}>{item.games} games</Text>
+            </View>
+            <View style={styles.statColumn}>
+              <Text style={styles.statValue}>{display}</Text>
+              <Text style={styles.statKey}>{args.statLabel}</Text>
+            </View>
+          </TouchableOpacity>
+        );
+      }}
+    />
+  );
+};
+
+const STATS: { key: LeaderboardStat; label: string; isPercent: boolean }[] = [
+  { key: 'ppg', label: 'PPG', isPercent: false },
+  { key: 'rpg', label: 'RPG', isPercent: false },
+  { key: 'apg', label: 'APG', isPercent: false },
+  { key: 'spg', label: 'SPG', isPercent: false },
+  { key: 'bpg', label: 'BPG', isPercent: false },
+  { key: 'fg_pct', label: 'FG%', isPercent: true },
+  { key: 'three_pt_pct', label: '3P%', isPercent: true },
+];
+
+const Leaderboard = observer(() => {
+  const router = useRouter();
+  const { profiles } = useStores();
+  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [stat, setStat] = useState<LeaderboardStat>('ppg');
+  const [range, setRange] = useState<Range>('all');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const { data } = await supabase.from('profiles').select('*');
+      if (!cancelled && Array.isArray(data)) profiles.upsertMany(data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [profiles]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    const controller = getControllers().leaderboard;
+    const fetcher = range === 'all' ? controller.career() : controller.last30Days();
+    void fetcher.then((res) => {
+      if (cancelled) return;
+      setLoading(false);
+      if (res.ok) setEntries(res.data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [range]);
+
+  const sorted = useMemo(() => {
+    return [...entries].sort((a, b) => b[stat] - a[stat]);
+  }, [entries, stat]);
+
+  const statLabel = STATS.find((s) => s.key === stat)?.label ?? 'PPG';
+  const isPercent = STATS.find((s) => s.key === stat)?.isPercent ?? false;
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <Stack.Screen options={{ title: 'Stats' }} />
+
+      <View style={styles.filterRow}>
+        <TouchableOpacity
+          style={[styles.rangeChip, range === 'all' && styles.rangeChipActive]}
+          onPress={() => setRange('all')}
+        >
+          <Text style={[styles.chipLabel, range === 'all' && styles.chipLabelActive]}>All-time</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.rangeChip, range === '30d' && styles.rangeChipActive]}
+          onPress={() => setRange('30d')}
+        >
+          <Text style={[styles.chipLabel, range === '30d' && styles.chipLabelActive]}>Last 30d</Text>
+        </TouchableOpacity>
+      </View>
+
+      <FlatList
+        data={STATS}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={(s) => s.key}
+        contentContainerStyle={styles.statRow}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[styles.statChip, stat === item.key && styles.statChipActive]}
+            onPress={() => setStat(item.key)}
+          >
+            <Text style={[styles.statChipLabel, stat === item.key && styles.statChipLabelActive]}>
+              {item.label}
+            </Text>
+          </TouchableOpacity>
+        )}
+      />
+
+      {renderBody({
+        loading,
+        sorted,
+        stat,
+        statLabel,
+        isPercent,
+        profiles,
+        onSelect: (profileId) =>
+          router.push({ pathname: '/player/[id]', params: { id: profileId } }),
+      })}
+    </SafeAreaView>
+  );
+});
+
+export default Leaderboard;
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: tokens.color.bg },
+  filterRow: {
+    flexDirection: 'row',
+    gap: tokens.spacing.sm,
+    paddingHorizontal: tokens.spacing.lg,
+    paddingTop: tokens.spacing.lg,
+  },
+  rangeChip: {
+    paddingHorizontal: tokens.spacing.lg,
+    paddingVertical: tokens.spacing.sm,
+    borderRadius: tokens.radius.pill,
+    backgroundColor: tokens.color.surfaceHigh,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+  },
+  rangeChipActive: {
+    backgroundColor: tokens.color.primary,
+    borderColor: tokens.color.primary,
+  },
+  chipLabel: {
+    color: tokens.color.textSecondary,
+    fontSize: tokens.font.size.sm,
+    fontWeight: '600',
+  },
+  chipLabelActive: { color: tokens.color.textPrimary },
+  statRow: {
+    paddingHorizontal: tokens.spacing.lg,
+    paddingVertical: tokens.spacing.md,
+    gap: tokens.spacing.sm,
+  },
+  statChip: {
+    paddingHorizontal: tokens.spacing.lg,
+    paddingVertical: tokens.spacing.sm,
+    borderRadius: tokens.radius.pill,
+    backgroundColor: tokens.color.surface,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+  },
+  statChipActive: {
+    backgroundColor: tokens.color.accent,
+    borderColor: tokens.color.accent,
+  },
+  statChipLabel: {
+    color: tokens.color.textSecondary,
+    fontSize: tokens.font.size.xs,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  statChipLabelActive: { color: tokens.color.textPrimary },
+  list: { padding: tokens.spacing.lg },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: tokens.spacing.md,
+    backgroundColor: tokens.color.surface,
+    borderRadius: tokens.radius.md,
+    padding: tokens.spacing.md,
+    borderWidth: 1,
+    borderColor: tokens.color.border,
+  },
+  rank: {
+    color: tokens.color.textMuted,
+    fontSize: tokens.font.size.md,
+    fontWeight: '700',
+    minWidth: 24,
+    textAlign: 'center',
+  },
+  name: { color: tokens.color.textPrimary, fontSize: tokens.font.size.md, fontWeight: '600' },
+  gameCount: { color: tokens.color.textMuted, fontSize: tokens.font.size.xs, marginTop: 2 },
+  statColumn: { alignItems: 'flex-end' },
+  statValue: { color: tokens.color.accent, fontSize: tokens.font.size.lg, fontWeight: '700' },
+  statKey: {
+    color: tokens.color.textMuted,
+    fontSize: tokens.font.size.xs,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: tokens.spacing.xl },
+  emptyTitle: {
+    color: tokens.color.textPrimary,
+    fontSize: tokens.font.size.xl,
+    fontWeight: '700',
+    marginBottom: tokens.spacing.sm,
+  },
+  emptyBody: { color: tokens.color.textSecondary, fontSize: tokens.font.size.sm, textAlign: 'center' },
+});

@@ -1,0 +1,8 @@
+node_modules
+.expo
+dist
+ios
+android
+yarn.lock
+package-lock.json
+supabase/.branches

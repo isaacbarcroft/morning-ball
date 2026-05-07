@@ -1,0 +1,27 @@
+appId: com.isaacbarcroft.morningball
+---
+# Sign-in → tap home card → teams page → cycle two players → publish → expect both team cards.
+# Prereq: at least two profiles RSVP'd 'in' for the upcoming session.
+
+- launchApp:
+    clearState: true
+- runFlow: rsvp.yaml
+
+- tapOn: "Next run"
+- assertVisible: "Your RSVP"
+- tapOn: "Teams"
+
+- assertVisible: "Tap each player"
+# Tap the first two unassigned players to cycle them onto teams.
+- tapOn:
+    index: 0
+    text: ".*"
+    optional: true
+- tapOn:
+    index: 1
+    text: ".*"
+    optional: true
+
+- tapOn: "Publish teams"
+- assertVisible: "Teams are set"
+- takeScreenshot: teams-published

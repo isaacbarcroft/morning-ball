@@ -1,0 +1,26 @@
+appId: com.isaacbarcroft.morningball
+---
+# Sign-in → home → flip RSVP toggle → expect "I'm in" pill highlighted.
+# Prereq: Supabase test-OTP mode is on, "MORNING" invite is seeded, an upcoming
+# session exists for tomorrow. Use a fresh test phone like +15555550199.
+
+- launchApp:
+    clearState: true
+- assertVisible: "Morning Ball"
+- tapOn: "Phone"
+- inputText: "+15555550199"
+- tapOn: "Send code"
+- assertVisible: "Enter the code"
+- tapOn:
+    id: "code"
+    optional: true
+# Substitute with the test-OTP value that Supabase prints to logs.
+- inputText: "123456"
+- tapOn: "Verify"
+
+- runFlow: onboarding-redeem.yaml
+
+- assertVisible: "Next run"
+- tapOn: "I'm in"
+- assertVisible: "I'm in"
+- takeScreenshot: rsvp-confirmed
