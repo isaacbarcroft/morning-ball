@@ -8,19 +8,28 @@ import { useStores } from '@/hooks/use-stores';
 import { getControllers } from '@/controllers';
 import { supabase } from '@/services/supabase';
 import { Avatar } from '@/views/primitives/avatar';
-import type { LeaderboardEntry, LeaderboardStat } from '@/controllers/leaderboard-controller';
+import type {
+  LeaderboardEntry,
+  LeaderboardStat,
+  RecordEntry,
+} from '@/controllers/leaderboard-controller';
 
 type Range = 'all' | '30d';
+type StatKey = LeaderboardStat | 'record';
 
 interface BodyArgs {
   loading: boolean;
-  sorted: LeaderboardEntry[];
-  stat: LeaderboardStat;
+  stat: StatKey;
+  sortedStats: LeaderboardEntry[];
+  sortedRecords: RecordEntry[];
   statLabel: string;
   isPercent: boolean;
   profiles: { get(id: string): { display_name: string; avatar_url: string | null } | undefined };
   onSelect: (profileId: string) => void;
 }
+
+const winPct = (r: RecordEntry): number =>
+  r.games_played > 0 ? Math.round((r.wins / r.games_played) * 100) : 0;
 
 const renderBody = (args: BodyArgs) => {
   if (args.loading) {
@@ -30,7 +39,9 @@ const renderBody = (args: BodyArgs) => {
       </View>
     );
   }
-  if (args.sorted.length === 0) {
+  const isRecord = args.stat === 'record';
+  const empty = isRecord ? args.sortedRecords.length === 0 : args.sortedStats.length === 0;
+  if (empty) {
     return (
       <View style={styles.empty}>
         <Text style={styles.emptyTitle}>No stats yet</Text>
@@ -40,15 +51,46 @@ const renderBody = (args: BodyArgs) => {
       </View>
     );
   }
+  if (isRecord) {
+    return (
+      <FlatList
+        data={args.sortedRecords}
+        keyExtractor={(e) => e.profile_id}
+        contentContainerStyle={styles.list}
+        ItemSeparatorComponent={() => <View style={{ height: tokens.spacing.sm }} />}
+        renderItem={({ item, index }) => {
+          const profile = args.profiles.get(item.profile_id);
+          return (
+            <TouchableOpacity style={styles.row} onPress={() => args.onSelect(item.profile_id)}>
+              <Text style={styles.rank}>{index + 1}</Text>
+              <Avatar
+                name={profile?.display_name ?? '?'}
+                url={profile?.avatar_url ?? null}
+                size={36}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{profile?.display_name ?? '—'}</Text>
+                <Text style={styles.gameCount}>{item.games_played} games</Text>
+              </View>
+              <View style={styles.statColumn}>
+                <Text style={styles.statValue}>{item.wins}-{item.losses}</Text>
+                <Text style={styles.statKey}>{winPct(item)}% WIN</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        }}
+      />
+    );
+  }
   return (
     <FlatList
-      data={args.sorted}
+      data={args.sortedStats}
       keyExtractor={(e) => e.profile_id}
       contentContainerStyle={styles.list}
       ItemSeparatorComponent={() => <View style={{ height: tokens.spacing.sm }} />}
       renderItem={({ item, index }) => {
         const profile = args.profiles.get(item.profile_id);
-        const value = item[args.stat];
+        const value = item[args.stat as LeaderboardStat];
         const display = args.isPercent ? `${value.toFixed(1)}%` : value.toFixed(1);
         return (
           <TouchableOpacity style={styles.row} onPress={() => args.onSelect(item.profile_id)}>
@@ -73,7 +115,8 @@ const renderBody = (args: BodyArgs) => {
   );
 };
 
-const STATS: { key: LeaderboardStat; label: string; isPercent: boolean }[] = [
+const STATS: { key: StatKey; label: string; isPercent: boolean }[] = [
+  { key: 'record', label: 'W/L', isPercent: false },
   { key: 'ppg', label: 'PPG', isPercent: false },
   { key: 'rpg', label: 'RPG', isPercent: false },
   { key: 'apg', label: 'APG', isPercent: false },
@@ -83,11 +126,15 @@ const STATS: { key: LeaderboardStat; label: string; isPercent: boolean }[] = [
   { key: 'three_pt_pct', label: '3P%', isPercent: true },
 ];
 
+// MVP: only W/L is exposed in the UI. Flip to false to bring back PPG/RPG/etc.
+const MVP_RECORDS_ONLY = true;
+
 const Leaderboard = observer(() => {
   const router = useRouter();
   const { profiles } = useStores();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
-  const [stat, setStat] = useState<LeaderboardStat>('ppg');
+  const [records, setRecords] = useState<RecordEntry[]>([]);
+  const [stat, setStat] = useState<StatKey>('record');
   const [range, setRange] = useState<Range>('all');
   const [loading, setLoading] = useState(true);
 
@@ -106,20 +153,28 @@ const Leaderboard = observer(() => {
     let cancelled = false;
     setLoading(true);
     const controller = getControllers().leaderboard;
-    const fetcher = range === 'all' ? controller.career() : controller.last30Days();
-    void fetcher.then((res) => {
+    const statsFetcher = range === 'all' ? controller.career() : controller.last30Days();
+    void Promise.all([statsFetcher, controller.records()]).then(([statsRes, recordsRes]) => {
       if (cancelled) return;
       setLoading(false);
-      if (res.ok) setEntries(res.data);
+      if (statsRes.ok) setEntries(statsRes.data);
+      if (recordsRes.ok) setRecords(recordsRes.data);
     });
     return () => {
       cancelled = true;
     };
   }, [range]);
 
-  const sorted = useMemo(() => {
+  const sortedStats = useMemo(() => {
+    if (stat === 'record') return entries;
     return [...entries].sort((a, b) => b[stat] - a[stat]);
   }, [entries, stat]);
+
+  const sortedRecords = useMemo(() => {
+    return [...records]
+      .filter((r) => r.games_played > 0)
+      .sort((a, b) => b.wins - a.wins || a.losses - b.losses);
+  }, [records]);
 
   const statLabel = STATS.find((s) => s.key === stat)?.label ?? 'PPG';
   const isPercent = STATS.find((s) => s.key === stat)?.isPercent ?? false;
@@ -143,28 +198,31 @@ const Leaderboard = observer(() => {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={STATS}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(s) => s.key}
-        contentContainerStyle={styles.statRow}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[styles.statChip, stat === item.key && styles.statChipActive]}
-            onPress={() => setStat(item.key)}
-          >
-            <Text style={[styles.statChipLabel, stat === item.key && styles.statChipLabelActive]}>
-              {item.label}
-            </Text>
-          </TouchableOpacity>
-        )}
-      />
+      {MVP_RECORDS_ONLY ? null : (
+        <FlatList
+          data={STATS}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(s) => s.key}
+          contentContainerStyle={styles.statRow}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[styles.statChip, stat === item.key && styles.statChipActive]}
+              onPress={() => setStat(item.key)}
+            >
+              <Text style={[styles.statChipLabel, stat === item.key && styles.statChipLabelActive]}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          )}
+        />
+      )}
 
       {renderBody({
         loading,
-        sorted,
         stat,
+        sortedStats,
+        sortedRecords,
         statLabel,
         isPercent,
         profiles,

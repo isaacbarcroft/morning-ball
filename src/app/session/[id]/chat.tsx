@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { observer } from 'mobx-react-lite';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { tokens } from '@/lib/theme';
 import { useStores } from '@/hooks/use-stores';
 import { useRealtime } from '@/hooks/use-realtime';
@@ -13,6 +14,7 @@ import type { MessageRow } from '@/types/domain';
 const Chat = observer(() => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { chat, profiles, auth } = useStores();
+  const insets = useSafeAreaInsets();
   const [threadId, setThreadId] = useState<string | null>(null);
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
@@ -92,11 +94,12 @@ const Chat = observer(() => {
         ref={listRef}
         data={messages}
         keyExtractor={(m) => m.id}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, messages.length === 0 && styles.listEmpty]}
         ItemSeparatorComponent={() => <View style={{ height: tokens.spacing.sm }} />}
         ListEmptyComponent={() => (
           <View style={styles.emptyMessages}>
-            <Text style={styles.emptyMuted}>No messages yet — start the conversation.</Text>
+            <Text style={styles.emptyTitle}>No messages yet</Text>
+            <Text style={styles.emptyMuted}>Start the conversation.</Text>
           </View>
         )}
         renderItem={({ item }) => {
@@ -119,7 +122,7 @@ const Chat = observer(() => {
           );
         }}
       />
-      <View style={styles.composer}>
+      <View style={[styles.composer, { paddingBottom: tokens.spacing.md + insets.bottom }]}>
         <TextInput
           value={body}
           onChangeText={setBody}
@@ -147,9 +150,16 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: tokens.color.bg },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: tokens.color.bg },
   emptyTitle: { color: tokens.color.textPrimary, fontSize: tokens.font.size.lg, fontWeight: '600' },
-  emptyMessages: { padding: tokens.spacing.xxl, alignItems: 'center' },
-  emptyMuted: { color: tokens.color.textMuted, fontSize: tokens.font.size.sm },
+  emptyMessages: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: tokens.spacing.xxl,
+    gap: tokens.spacing.xs,
+  },
+  emptyMuted: { color: tokens.color.textMuted, fontSize: tokens.font.size.sm, textAlign: 'center' },
   list: { padding: tokens.spacing.lg, gap: tokens.spacing.sm, flexGrow: 1 },
+  listEmpty: { justifyContent: 'center' },
   messageRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
