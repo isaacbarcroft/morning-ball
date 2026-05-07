@@ -1,4 +1,3 @@
-console.log('[diag] _layout module begin');
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -9,15 +8,18 @@ import { tokens } from '@/lib/theme';
 import { supabase } from '@/services/supabase';
 import { getControllers } from '@/controllers';
 import { getRootStore } from '@/stores/root-store';
+import { logger } from '@/services/logger';
 
-console.log('[diag] _layout imports done');
+logger.debug('_layout module loaded');
 
 export default function RootLayout() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    console.log('[diag] _layout useEffect start');
-    SplashScreen.hideAsync().catch((err) => console.log('[diag] hideAsync err', err));
+    logger.debug('_layout hydrate effect start');
+    SplashScreen.hideAsync().catch((err: unknown) =>
+      logger.warn('splash hideAsync failed', { error: String(err) }),
+    );
     let cancelled = false;
     const controllers = getControllers();
     const store = getRootStore();
@@ -33,10 +35,9 @@ export default function RootLayout() {
 
     controllers.auth
       .hydrate()
-      .then(() => console.log('[diag] hydrate resolved'))
-      .catch((err) => console.log('[diag] hydrate err', err))
+      .then(() => logger.debug('auth hydrate resolved'))
+      .catch((err: unknown) => logger.error('auth hydrate failed', { error: String(err) }))
       .finally(() => {
-        console.log('[diag] hydrate finally');
         if (!cancelled) setHydrated(true);
       });
 
