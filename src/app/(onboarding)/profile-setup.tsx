@@ -6,11 +6,13 @@ import { observer } from 'mobx-react-lite';
 import { tokens } from '@/lib/theme';
 import { getControllers } from '@/controllers';
 import { useStores } from '@/hooks/use-stores';
+import { profileSetupSchema } from '@/lib/validation';
 
 const optionalNumber = (value: string): number | undefined => {
   const trimmed = value.trim();
   if (trimmed === '') return undefined;
-  return Number(trimmed);
+  const n = Number(trimmed);
+  return Number.isFinite(n) ? n : undefined;
 };
 
 const ProfileSetup = observer(() => {
@@ -72,12 +74,19 @@ const ProfileSetup = observer(() => {
       return;
     }
     const displayName = `${trimmedFirst} ${trimmedLast}`;
-    const out = await getControllers().profile.updateOwn({
+    const payload = {
       displayName,
       nickname: nickname.trim() === '' ? undefined : nickname,
       heightInches: optionalNumber(heightInches),
       skillRating: optionalNumber(skillRating),
-    });
+    };
+    const validation = profileSetupSchema.safeParse(payload);
+    if (!validation.success) {
+      setError(validation.error.issues[0]?.message ?? 'Invalid profile data');
+      setSubmitting(false);
+      return;
+    }
+    const out = await getControllers().profile.updateOwn(payload);
     setSubmitting(false);
     if (!out.ok) {
       setError(out.error);
