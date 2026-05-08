@@ -12,21 +12,8 @@ import { Pill } from '@/views/primitives/pill';
 import { RsvpToggle } from '@/views/rsvp/rsvp-toggle';
 import { RsvpList } from '@/views/rsvp/rsvp-list';
 import { formatGameDateLong, formatGameTime } from '@/lib/format';
-import type { ProfileRow, RsvpStatus, SessionStatus } from '@/types/domain';
-
-const sessionPillTone = (status: SessionStatus) => {
-  if (status === 'completed') return 'success' as const;
-  if (status === 'in_progress') return 'accent' as const;
-  if (status === 'cancelled') return 'danger' as const;
-  return 'primary' as const;
-};
-
-const sessionPillLabel = (status: SessionStatus): string => {
-  if (status === 'completed') return 'Final';
-  if (status === 'in_progress') return 'Live';
-  if (status === 'cancelled') return 'Cancelled';
-  return 'Upcoming';
-};
+import { sessionPillTone, sessionPillLabel } from '@/lib/session-status';
+import type { ProfileRow, RsvpStatus } from '@/types/domain';
 
 const SessionDetail = observer(() => {
   const router = useRouter();

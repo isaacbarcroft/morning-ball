@@ -3,26 +3,13 @@ import { tokens } from '@/lib/theme';
 import { Card } from '@/views/primitives/card';
 import { Pill } from '@/views/primitives/pill';
 import { formatGameDate, formatGameTime } from '@/lib/format';
-import type { SessionRow, SessionStatus } from '@/types/domain';
+import { sessionPillTone, sessionPillLabel } from '@/lib/session-status';
+import type { SessionRow } from '@/types/domain';
 
 interface SessionCardProps {
   session: SessionRow;
   children?: React.ReactNode;
 }
-
-const pillTone = (status: SessionStatus) => {
-  if (status === 'completed') return 'success' as const;
-  if (status === 'in_progress') return 'accent' as const;
-  if (status === 'cancelled') return 'danger' as const;
-  return 'primary' as const;
-};
-
-const pillLabel = (status: SessionStatus): string => {
-  if (status === 'completed') return 'Final';
-  if (status === 'in_progress') return 'Live';
-  if (status === 'cancelled') return 'Cancelled';
-  return 'Upcoming';
-};
 
 export function SessionCard({ session, children }: SessionCardProps) {
   return (
@@ -36,7 +23,7 @@ export function SessionCard({ session, children }: SessionCardProps) {
           </Text>
           {session.title ? <Text style={styles.title}>{session.title}</Text> : null}
         </View>
-        <Pill tone={pillTone(session.status)} label={pillLabel(session.status)} />
+        <Pill tone={sessionPillTone(session.status)} label={sessionPillLabel(session.status)} />
       </View>
       {session.notes ? <Text style={styles.notes}>{session.notes}</Text> : null}
       {children ? <View style={styles.body}>{children}</View> : null}
