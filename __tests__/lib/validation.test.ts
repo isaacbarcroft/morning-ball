@@ -85,4 +85,43 @@ describe('profileSetupSchema', () => {
       profileSetupSchema.safeParse({ displayName: 'A', skillRating: 6 }).success,
     ).toBe(false);
   });
+
+  it('rejects height below minimum', () => {
+    expect(
+      profileSetupSchema.safeParse({ displayName: 'A', heightInches: 47 }).success,
+    ).toBe(false);
+    expect(
+      profileSetupSchema.safeParse({ displayName: 'A', heightInches: 0 }).success,
+    ).toBe(false);
+  });
+
+  it('accepts height at exact boundaries', () => {
+    expect(
+      profileSetupSchema.safeParse({ displayName: 'A', heightInches: 48 }).success,
+    ).toBe(true);
+    expect(
+      profileSetupSchema.safeParse({ displayName: 'A', heightInches: 90 }).success,
+    ).toBe(true);
+  });
+
+  it('rejects skill rating below minimum', () => {
+    expect(
+      profileSetupSchema.safeParse({ displayName: 'A', skillRating: 0 }).success,
+    ).toBe(false);
+  });
+
+  it('accepts skill rating at exact boundaries', () => {
+    expect(
+      profileSetupSchema.safeParse({ displayName: 'A', skillRating: 1 }).success,
+    ).toBe(true);
+    expect(
+      profileSetupSchema.safeParse({ displayName: 'A', skillRating: 5 }).success,
+    ).toBe(true);
+  });
+
+  it('rejects non-integer height', () => {
+    expect(
+      profileSetupSchema.safeParse({ displayName: 'A', heightInches: 70.5 }).success,
+    ).toBe(false);
+  });
 });
