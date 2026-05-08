@@ -1,6 +1,11 @@
+import { subDays } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import type { AppSupabase } from '@/services/supabase';
+import { APP_TIMEZONE } from '@/lib/constants';
 import { logger } from '@/services/logger';
 import { fail, ok, type ControllerResult } from '@/types/domain';
+
+const RECENT_WINDOW_DAYS = 30;
 
 export type LeaderboardStat = 'ppg' | 'rpg' | 'apg' | 'spg' | 'bpg' | 'topg' | 'fg_pct' | 'three_pt_pct' | 'ft_pct';
 
@@ -54,11 +59,15 @@ export class LeaderboardController {
   }
 
   async last30Days(): Promise<ControllerResult<LeaderboardEntry[]>> {
-    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const cutoffDate = formatInTimeZone(
+      subDays(new Date(), RECENT_WINDOW_DAYS),
+      APP_TIMEZONE,
+      'yyyy-MM-dd',
+    );
     const { data, error } = await this.supabase
       .from('player_session_stats')
       .select('*, sessions!inner(scheduled_for)')
-      .gte('recorded_at', cutoff);
+      .gte('sessions.scheduled_for', cutoffDate);
     if (error) {
       logger.warn('last30 stats fetch failed', { error: error.message });
       return fail(error.message);
