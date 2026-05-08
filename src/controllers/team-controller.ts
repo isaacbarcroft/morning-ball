@@ -3,8 +3,16 @@ import type { AppSupabase } from '@/services/supabase';
 import { logger } from '@/services/logger';
 import { firePushEvent } from '@/services/push-events';
 import { tokens } from '@/lib/theme';
+import { balanceTeams, type BalancedTeams, type TeamBalancePlayer } from '@/lib/team-balance';
 import type { RootStore } from '@/stores/root-store';
-import { fail, ok, type ControllerResult, type TeamRow, type TeamMemberRow } from '@/types/domain';
+import {
+  fail,
+  ok,
+  type ControllerResult,
+  type ProfileRow,
+  type TeamRow,
+  type TeamMemberRow,
+} from '@/types/domain';
 
 interface TeamControllerDeps {
   supabase: AppSupabase;
@@ -20,6 +28,13 @@ interface PublishInput {
 interface FinalScoreInput {
   teamId: string;
   finalScore: number;
+}
+
+interface ProfileRecordRow {
+  profile_id: string | null;
+  wins: number | null;
+  losses: number | null;
+  games_played: number | null;
 }
 
 export class TeamController {
@@ -49,6 +64,37 @@ export class TeamController {
     if (error) return fail(error.message);
     runInAction(() => this.store.sessions.setTeamMembers(teamId, data ?? []));
     return ok(data ?? []);
+  }
+
+  async balance(profiles: readonly ProfileRow[]): Promise<ControllerResult<BalancedTeams>> {
+    const profileIds = profiles.map((profile) => profile.id);
+    if (profileIds.length === 0) return ok(balanceTeams([]));
+
+    const { data, error } = await this.supabase
+      .from('profile_records')
+      .select('*')
+      .in('profile_id', profileIds);
+    if (error) return fail(error.message);
+
+    const records = new Map<string, ProfileRecordRow>();
+    for (const row of (data ?? []) as ProfileRecordRow[]) {
+      if (row.profile_id === null) continue;
+      records.set(row.profile_id, row);
+    }
+
+    const players: TeamBalancePlayer[] = profiles.map((profile) => {
+      const record = records.get(profile.id);
+      return {
+        profileId: profile.id,
+        heightInches: profile.height_inches,
+        skillRating: profile.skill_rating,
+        wins: record?.wins ?? 0,
+        losses: record?.losses ?? 0,
+        gamesPlayed: record?.games_played ?? 0,
+      };
+    });
+
+    return ok(balanceTeams(players));
   }
 
   async publish(input: PublishInput): Promise<ControllerResult<TeamRow[]>> {

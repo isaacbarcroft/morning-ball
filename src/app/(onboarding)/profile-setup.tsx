@@ -7,6 +7,12 @@ import { tokens } from '@/lib/theme';
 import { getControllers } from '@/controllers';
 import { useStores } from '@/hooks/use-stores';
 
+const optionalNumber = (value: string): number | undefined => {
+  const trimmed = value.trim();
+  if (trimmed === '') return undefined;
+  return Number(trimmed);
+};
+
 const ProfileSetup = observer(() => {
   const router = useRouter();
   const { auth } = useStores();
@@ -19,6 +25,12 @@ const ProfileSetup = observer(() => {
     firstSpace === -1 ? '' : existingName.slice(firstSpace + 1),
   );
   const [nickname, setNickname] = useState(auth.profile?.nickname ?? '');
+  const [heightInches, setHeightInches] = useState(
+    auth.profile?.height_inches == null ? '' : String(auth.profile.height_inches),
+  );
+  const [skillRating, setSkillRating] = useState(
+    auth.profile?.skill_rating == null ? '' : String(auth.profile.skill_rating),
+  );
   const [submitting, setSubmitting] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,6 +75,8 @@ const ProfileSetup = observer(() => {
     const out = await getControllers().profile.updateOwn({
       displayName,
       nickname: nickname.trim() === '' ? undefined : nickname,
+      heightInches: optionalNumber(heightInches),
+      skillRating: optionalNumber(skillRating),
     });
     setSubmitting(false);
     if (!out.ok) {
@@ -117,6 +131,28 @@ const ProfileSetup = observer(() => {
           onChangeText={setNickname}
           placeholder="Iz"
           placeholderTextColor={tokens.color.textMuted}
+          style={styles.input}
+        />
+
+        <Text style={styles.label}>Height in inches (optional)</Text>
+        <TextInput
+          value={heightInches}
+          onChangeText={setHeightInches}
+          placeholder="77"
+          placeholderTextColor={tokens.color.textMuted}
+          keyboardType="number-pad"
+          maxLength={2}
+          style={styles.input}
+        />
+
+        <Text style={styles.label}>Skill rating 1-5 (optional)</Text>
+        <TextInput
+          value={skillRating}
+          onChangeText={setSkillRating}
+          placeholder="3"
+          placeholderTextColor={tokens.color.textMuted}
+          keyboardType="number-pad"
+          maxLength={1}
           style={styles.input}
         />
 

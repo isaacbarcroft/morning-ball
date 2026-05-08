@@ -38,6 +38,8 @@ export class ProfileController {
       display_name: parsed.data.displayName,
       nickname: parsed.data.nickname ?? null,
       jersey_number: parsed.data.jerseyNumber ?? null,
+      height_inches: parsed.data.heightInches ?? null,
+      skill_rating: parsed.data.skillRating ?? null,
       bio: parsed.data.bio ?? null,
     };
 

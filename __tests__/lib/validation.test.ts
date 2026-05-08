@@ -66,4 +66,23 @@ describe('profileSetupSchema', () => {
       profileSetupSchema.safeParse({ displayName: 'A', jerseyNumber: 100 }).success,
     ).toBe(false);
   });
+
+  it('accepts optional player specs', () => {
+    const res = profileSetupSchema.parse({
+      displayName: 'A',
+      heightInches: 77,
+      skillRating: 4,
+    });
+    expect(res.heightInches).toBe(77);
+    expect(res.skillRating).toBe(4);
+  });
+
+  it('rejects out-of-range player specs', () => {
+    expect(
+      profileSetupSchema.safeParse({ displayName: 'A', heightInches: 91 }).success,
+    ).toBe(false);
+    expect(
+      profileSetupSchema.safeParse({ displayName: 'A', skillRating: 6 }).success,
+    ).toBe(false);
+  });
 });
