@@ -5,6 +5,7 @@ import { observer } from 'mobx-react-lite';
 import { tokens } from '@/lib/theme';
 import { useStores } from '@/hooks/use-stores';
 import { getControllers } from '@/controllers';
+import { formatHeight } from '@/lib/format';
 import { Avatar } from '@/views/primitives/avatar';
 import { Pill } from '@/views/primitives/pill';
 
@@ -37,10 +38,23 @@ const Profile = observer(() => {
         {profile?.jersey_number != null ? (
           <Pill label={`#${profile.jersey_number}`} tone="accent" />
         ) : null}
+        {profile?.height_inches != null ? (
+          <Pill label={formatHeight(profile.height_inches)} tone="accent" />
+        ) : null}
+        {profile?.skill_rating != null ? (
+          <Pill label={`${profile.skill_rating}/5`} tone="primary" />
+        ) : null}
       </View>
 
       <TouchableOpacity onPress={viewFullProfile} style={styles.linkButton}>
         <Text style={styles.linkLabel}>View full stats</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => router.push('/(onboarding)/profile-setup')}
+        style={styles.secondaryLink}
+      >
+        <Text style={styles.secondaryLinkLabel}>Edit profile</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -86,6 +100,8 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: tokens.spacing.sm,
   },
   linkButton: {

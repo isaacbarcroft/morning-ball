@@ -7,7 +7,7 @@ import { useStores } from '@/hooks/use-stores';
 import { supabase } from '@/services/supabase';
 import { Avatar } from '@/views/primitives/avatar';
 import { Pill } from '@/views/primitives/pill';
-import { formatPercent, formatStat } from '@/lib/format';
+import { formatHeight, formatPercent, formatStat } from '@/lib/format';
 import type { AchievementRow, ProfileRow } from '@/types/domain';
 
 interface CareerStats {
@@ -100,6 +100,12 @@ const PlayerProfile = observer(() => {
           <Pill label={profile.role} tone="primary" />
           {profile.jersey_number != null ? (
             <Pill label={`#${profile.jersey_number}`} tone="accent" />
+          ) : null}
+          {profile.height_inches != null ? (
+            <Pill label={formatHeight(profile.height_inches)} tone="accent" />
+          ) : null}
+          {profile.skill_rating != null ? (
+            <Pill label={`${profile.skill_rating}/5`} tone="primary" />
           ) : null}
         </View>
       </View>
@@ -208,6 +214,8 @@ const styles = StyleSheet.create({
   },
   pillRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: tokens.spacing.sm,
     marginTop: tokens.spacing.xs,
   },

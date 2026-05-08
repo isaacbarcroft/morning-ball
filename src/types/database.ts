@@ -437,11 +437,13 @@ export type Database = {
           created_at: string
           display_name: string
           email: string | null
+          height_inches: number | null
           id: string
           jersey_number: number | null
           joined_at: string
           nickname: string | null
           role: string
+          skill_rating: number | null
           status: string
           updated_at: string
         }
@@ -453,11 +455,13 @@ export type Database = {
           created_at?: string
           display_name: string
           email?: string | null
+          height_inches?: number | null
           id?: string
           jersey_number?: number | null
           joined_at?: string
           nickname?: string | null
           role?: string
+          skill_rating?: number | null
           status?: string
           updated_at?: string
         }
@@ -469,11 +473,13 @@ export type Database = {
           created_at?: string
           display_name?: string
           email?: string | null
+          height_inches?: number | null
           id?: string
           jersey_number?: number | null
           joined_at?: string
           nickname?: string | null
           role?: string
+          skill_rating?: number | null
           status?: string
           updated_at?: string
         }
@@ -890,4 +896,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

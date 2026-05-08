@@ -23,6 +23,7 @@ const Teams = observer(() => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { sessions, profiles, auth } = useStores();
   const [assignments, setAssignments] = useState<Map<string, Assignment>>(new Map());
+  const [balancing, setBalancing] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,6 +77,28 @@ const Teams = observer(() => {
       const next = new Map(prev);
       const current = next.get(profileId) ?? 'unassigned';
       next.set(profileId, cycleAssignment(current));
+      return next;
+    });
+  };
+
+  const balance = async () => {
+    if (balancing) return;
+    if (inProfiles.length < 2) {
+      setError('Need at least two confirmed players to balance teams.');
+      return;
+    }
+    setBalancing(true);
+    setError(null);
+    const out = await getControllers().team.balance(inProfiles);
+    setBalancing(false);
+    if (!out.ok) {
+      setError(out.error);
+      return;
+    }
+    setAssignments(() => {
+      const next = new Map<string, Assignment>();
+      for (const profileId of out.data.teamA) next.set(profileId, 'A');
+      for (const profileId of out.data.teamB) next.set(profileId, 'B');
       return next;
     });
   };
@@ -157,6 +180,18 @@ const Teams = observer(() => {
     <ScrollView contentContainerStyle={styles.container}>
       <Stack.Screen options={{ title: 'Build teams' }} />
       <Text style={styles.heading}>Tap each player to cycle: unassigned → A → B</Text>
+
+      <TouchableOpacity
+        style={[styles.balanceButton, balancing && styles.balanceDisabled]}
+        onPress={balance}
+        disabled={balancing}
+      >
+        {balancing ? (
+          <ActivityIndicator color={tokens.color.textPrimary} />
+        ) : (
+          <Text style={styles.balanceLabel}>Balance teams</Text>
+        )}
+      </TouchableOpacity>
 
       {(['A', 'B', 'unassigned'] as const).map((bucket) => {
         const bucketProfiles = inProfiles.filter(
@@ -240,6 +275,18 @@ const styles = StyleSheet.create({
   heading: {
     color: tokens.color.textSecondary,
     fontSize: tokens.font.size.sm,
+  },
+  balanceButton: {
+    backgroundColor: tokens.color.accent,
+    borderRadius: tokens.radius.pill,
+    alignItems: 'center',
+    paddingVertical: tokens.spacing.md,
+  },
+  balanceDisabled: { opacity: 0.6 },
+  balanceLabel: {
+    color: tokens.color.textPrimary,
+    fontSize: tokens.font.size.sm,
+    fontWeight: '700',
   },
   bucket: {
     backgroundColor: tokens.color.surface,

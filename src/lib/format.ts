@@ -34,6 +34,13 @@ export const formatStat = (value: number | null | undefined): string => {
   return value.toFixed(1);
 };
 
+export const formatHeight = (heightInches: number | null | undefined): string => {
+  if (heightInches === null || heightInches === undefined) return '—';
+  const feet = Math.floor(heightInches / 12);
+  const inches = heightInches % 12;
+  return `${feet}'${inches}"`;
+};
+
 export const initials = (displayName: string): string => {
   const parts = displayName.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '?';

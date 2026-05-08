@@ -26,6 +26,18 @@ export const profileSetupSchema = z.object({
     .min(0)
     .max(99)
     .optional(),
+  heightInches: z
+    .number()
+    .int()
+    .min(48)
+    .max(90)
+    .optional(),
+  skillRating: z
+    .number()
+    .int()
+    .min(1)
+    .max(5)
+    .optional(),
   bio: z.string().trim().max(200).optional(),
 });
 
