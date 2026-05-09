@@ -6,7 +6,6 @@ import { tokens } from '@/lib/theme';
 import { useStores } from '@/hooks/use-stores';
 import { useRealtime } from '@/hooks/use-realtime';
 import { getControllers } from '@/controllers';
-import { supabase } from '@/services/supabase';
 import { Avatar } from '@/views/primitives/avatar';
 import { TeamCard } from '@/views/teams/team-card';
 import type { ProfileRow } from '@/types/domain';
@@ -32,11 +31,8 @@ const Teams = observer(() => {
     void getControllers().session.get(id);
     void getControllers().rsvp.listForSession(id);
     void getControllers().team.listForSession(id);
-    void (async () => {
-      const { data } = await supabase.from('profiles').select('*');
-      if (Array.isArray(data)) profiles.upsertMany(data);
-    })();
-  }, [id, profiles]);
+    void getControllers().profile.listAll();
+  }, [id]);
 
   const handleTeamsRealtime = useCallback(() => {
     if (id) {
