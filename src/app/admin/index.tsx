@@ -13,12 +13,16 @@ interface Stats {
 export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       const out = await getControllers().admin.dashboardStats();
-      if (!cancelled && out.ok) setStats(out.data);
+      if (!cancelled) {
+        setLoading(false);
+        if (out.ok) setStats(out.data);
+      }
     })();
     return () => {
       cancelled = true;
@@ -34,7 +38,7 @@ export default function AdminDashboard() {
         <Tile label="Upcoming" value={stats?.upcomingCount ?? '—'} />
         <Tile label="Completed" value={stats?.completedCount ?? '—'} />
       </View>
-      {stats === null ? <ActivityIndicator color={tokens.color.primary} /> : null}
+      {loading ? <ActivityIndicator color={tokens.color.primary} /> : null}
 
       <NavRow
         label="Invite codes"

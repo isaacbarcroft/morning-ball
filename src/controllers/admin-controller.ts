@@ -188,6 +188,9 @@ export class AdminController {
       this.supabase.from('sessions').select('id', { count: 'exact', head: true }).eq('status', 'upcoming'),
       this.supabase.from('sessions').select('id', { count: 'exact', head: true }).eq('status', 'completed'),
     ]);
+    if (members.error) return fail(members.error.message);
+    if (upcoming.error) return fail(upcoming.error.message);
+    if (completed.error) return fail(completed.error.message);
     return ok({
       memberCount: members.count ?? 0,
       upcomingCount: upcoming.count ?? 0,
