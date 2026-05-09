@@ -5,7 +5,6 @@ import { observer } from 'mobx-react-lite';
 import { tokens } from '@/lib/theme';
 import { useStores } from '@/hooks/use-stores';
 import { getControllers } from '@/controllers';
-import { supabase } from '@/services/supabase';
 import { StatsRow, type StatLine, emptyStatLine } from '@/views/stats/stats-row';
 import type { ProfileRow, StatsRow as StatsDbRow, TeamRow } from '@/types/domain';
 
@@ -38,11 +37,8 @@ const StatsScreen = observer(() => {
     void getControllers().session.get(id);
     void getControllers().team.listForSession(id);
     void getControllers().stats.listForSession(id);
-    void (async () => {
-      const { data } = await supabase.from('profiles').select('*');
-      if (Array.isArray(data)) profiles.upsertMany(data);
-    })();
-  }, [id, profiles]);
+    void getControllers().profile.listAll();
+  }, [id]);
 
   const teams = useMemo(
     () => (id ? sessions.teamsBySession.get(id) ?? [] : []),

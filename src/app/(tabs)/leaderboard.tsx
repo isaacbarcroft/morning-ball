@@ -6,7 +6,6 @@ import { observer } from 'mobx-react-lite';
 import { tokens } from '@/lib/theme';
 import { useStores } from '@/hooks/use-stores';
 import { getControllers } from '@/controllers';
-import { supabase } from '@/services/supabase';
 import { Avatar } from '@/views/primitives/avatar';
 import type {
   LeaderboardEntry,
@@ -139,15 +138,8 @@ const Leaderboard = observer(() => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const { data } = await supabase.from('profiles').select('*');
-      if (!cancelled && Array.isArray(data)) profiles.upsertMany(data);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [profiles]);
+    void getControllers().profile.listAll();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

@@ -3,7 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import type { AppSupabase } from '@/services/supabase';
 import { logger } from '@/services/logger';
 import type { RootStore } from '@/stores/root-store';
-import { fail, ok, type ControllerResult } from '@/types/domain';
+import { fail, ok, type ControllerResult, type ProfileRow } from '@/types/domain';
 import { profileSetupSchema, type ProfileSetupInput } from '@/lib/validation';
 
 interface ProfileControllerDeps {
@@ -24,6 +24,16 @@ export class ProfileController {
   constructor(deps: ProfileControllerDeps) {
     this.supabase = deps.supabase;
     this.store = deps.store;
+  }
+
+  async listAll(): Promise<ControllerResult<ProfileRow[]>> {
+    const { data, error } = await this.supabase.from('profiles').select('*');
+    if (error) {
+      logger.warn('profiles list failed', { error: error.message });
+      return fail(error.message);
+    }
+    runInAction(() => this.store.profiles.upsertMany(data ?? []));
+    return ok(data ?? []);
   }
 
   async updateOwn(input: ProfileSetupInput): Promise<ControllerResult<true>> {
