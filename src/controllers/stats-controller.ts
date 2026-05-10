@@ -36,6 +36,7 @@ const validateStats = (input: StatsInput): string | null => {
   const ftm = nonNegative(input.ftm);
   const fta = nonNegative(input.fta);
   if (fga < fgm) return 'FGA cannot be less than FGM';
+  if (threePa > fga) return '3PA cannot exceed FGA';
   if (threePa < threePm) return '3PA cannot be less than 3PM';
   if (fta < ftm) return 'FTA cannot be less than FTM';
   if (threePm > fgm) return '3PM cannot exceed FGM';

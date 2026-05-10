@@ -60,6 +60,20 @@ describe('StatsController.upsert', () => {
     if (!res.ok) expect(res.error).toMatch(/FGA/);
   });
 
+  it('rejects 3PA > FGA', async () => {
+    const res = await sc.upsert({
+      sessionId: 's',
+      profileId: 'p',
+      teamId: 't',
+      fga: 5,
+      fgm: 3,
+      threePa: 8,
+      threePm: 2,
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/3PA/);
+  });
+
   it('rejects 3PM > FGM', async () => {
     const res = await sc.upsert({
       sessionId: 's',
