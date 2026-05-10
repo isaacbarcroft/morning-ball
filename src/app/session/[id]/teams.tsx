@@ -31,7 +31,11 @@ const Teams = observer(() => {
     void getControllers().session.get(id);
     void getControllers().rsvp.listForSession(id);
     void getControllers().team.listForSession(id);
-    void getControllers().profile.listAll();
+    void getControllers()
+      .profile.listAll()
+      .then((res) => {
+        if (!res.ok) setError(`Couldn't load players: ${res.error}`);
+      });
   }, [id]);
 
   const handleTeamsRealtime = useCallback(() => {
