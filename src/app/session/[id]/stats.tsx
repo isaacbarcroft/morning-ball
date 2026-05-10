@@ -37,7 +37,11 @@ const StatsScreen = observer(() => {
     void getControllers().session.get(id);
     void getControllers().team.listForSession(id);
     void getControllers().stats.listForSession(id);
-    void getControllers().profile.listAll();
+    void getControllers()
+      .profile.listAll()
+      .then((res) => {
+        if (!res.ok) setError(`Couldn't load players: ${res.error}`);
+      });
   }, [id]);
 
   const teams = useMemo(
