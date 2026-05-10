@@ -17,6 +17,13 @@ interface AvatarUploadInput {
   extension: string;
 }
 
+interface ListPageInput {
+  offset?: number;
+  limit?: number;
+}
+
+export const PROFILE_PAGE_SIZE = 200;
+
 export class ProfileController {
   private supabase: AppSupabase;
   private store: RootStore;
@@ -26,14 +33,34 @@ export class ProfileController {
     this.store = deps.store;
   }
 
-  async listAll(): Promise<ControllerResult<ProfileRow[]>> {
-    const { data, error } = await this.supabase.from('profiles').select('*');
+  async listPage(input: ListPageInput = {}): Promise<ControllerResult<ProfileRow[]>> {
+    const offset = input.offset ?? 0;
+    const limit = input.limit ?? PROFILE_PAGE_SIZE;
+    const { data, error } = await this.supabase
+      .from('profiles')
+      .select('*')
+      .order('id', { ascending: true })
+      .range(offset, offset + limit - 1);
     if (error) {
-      logger.warn('profiles listAll failed', { error: error.message });
+      logger.warn('profiles listPage failed', { error: error.message, offset, limit });
       return fail(error.message);
     }
-    runInAction(() => this.store.profiles.upsertMany(data ?? []));
-    return ok(data ?? []);
+    const rows = data ?? [];
+    runInAction(() => this.store.profiles.upsertMany(rows));
+    return ok(rows);
+  }
+
+  async listAll(): Promise<ControllerResult<ProfileRow[]>> {
+    const all: ProfileRow[] = [];
+    let offset = 0;
+    while (true) {
+      const page = await this.listPage({ offset, limit: PROFILE_PAGE_SIZE });
+      if (!page.ok) return page;
+      all.push(...page.data);
+      if (page.data.length < PROFILE_PAGE_SIZE) break;
+      offset += PROFILE_PAGE_SIZE;
+    }
+    return ok(all);
   }
 
   async updateOwn(input: ProfileSetupInput): Promise<ControllerResult<true>> {
