@@ -6,7 +6,6 @@ import { observer } from 'mobx-react-lite';
 import { tokens } from '@/lib/theme';
 import { useStores } from '@/hooks/use-stores';
 import { getControllers } from '@/controllers';
-import { supabase } from '@/services/supabase';
 import { Avatar } from '@/views/primitives/avatar';
 import type {
   LeaderboardEntry,
@@ -137,17 +136,18 @@ const Leaderboard = observer(() => {
   const [stat, setStat] = useState<StatKey>('record');
   const [range, setRange] = useState<Range>('all');
   const [loading, setLoading] = useState(true);
+  const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      const { data } = await supabase.from('profiles').select('*');
-      if (!cancelled && Array.isArray(data)) profiles.upsertMany(data);
-    })();
+    void getControllers().profile.listAll().then((res) => {
+      if (cancelled) return;
+      if (!res.ok) setProfileLoadError(res.error);
+    });
     return () => {
       cancelled = true;
     };
-  }, [profiles]);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -197,6 +197,12 @@ const Leaderboard = observer(() => {
           <Text style={[styles.chipLabel, range === '30d' && styles.chipLabelActive]}>Last 30d</Text>
         </TouchableOpacity>
       </View>
+
+      {profileLoadError ? (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorBannerText}>Could not load player names — {profileLoadError}</Text>
+        </View>
+      ) : null}
 
       {MVP_RECORDS_ONLY ? null : (
         <FlatList
@@ -312,6 +318,20 @@ const styles = StyleSheet.create({
     fontSize: tokens.font.size.xs,
     fontWeight: '600',
     letterSpacing: 0.5,
+  },
+  errorBanner: {
+    marginHorizontal: tokens.spacing.lg,
+    marginTop: tokens.spacing.sm,
+    padding: tokens.spacing.sm,
+    borderRadius: tokens.radius.sm,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  errorBannerText: {
+    color: tokens.color.danger,
+    fontSize: tokens.font.size.xs,
+    textAlign: 'center',
   },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: tokens.spacing.xl },
