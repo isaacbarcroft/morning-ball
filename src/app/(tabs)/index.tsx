@@ -7,6 +7,7 @@ import type { RsvpStatus } from '@/types/domain';
 import { RsvpCounts } from '@/views/rsvp/rsvp-counts';
 import { RsvpToggle } from '@/views/rsvp/rsvp-toggle';
 import { SessionCard } from '@/views/sessions/session-card';
+import { TeamScoreRow } from '@/views/teams/team-score-row';
 import { Stack, useRouter } from 'expo-router';
 import { observer } from 'mobx-react-lite';
 import { useCallback, useEffect, useState } from 'react';
@@ -33,11 +34,18 @@ const Home = observer(() => {
 
   const next = sessions.next;
   const sessionId = next?.id;
+  const lastGame = sessions.completed[0];
+  const lastGameId = lastGame?.id;
 
   useEffect(() => {
     if (!sessionId) return;
     void getControllers().rsvp.listForSession(sessionId);
   }, [sessionId]);
+
+  useEffect(() => {
+    if (!lastGameId) return;
+    void getControllers().team.listForSession(lastGameId);
+  }, [lastGameId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,7 +83,7 @@ const Home = observer(() => {
     onChange: handleRealtime,
   });
 
-  if (!next) {
+  if (!next && !lastGame) {
     return (
       <SafeAreaView style={styles.empty} edges={['top']}>
         <Stack.Screen options={{ title: 'Morning Ball' }} />
@@ -87,7 +95,7 @@ const Home = observer(() => {
     );
   }
 
-  const rsvps = sessions.rsvpsBySession.get(next.id) ?? [];
+  const rsvps = next ? sessions.rsvpsBySession.get(next.id) ?? [] : [];
   const myRsvp = rsvps.find((r) => r.profile_id === auth.profile?.id);
   const inCount = rsvps.filter((r) => r.status === 'in').length;
   const outCount = rsvps.filter((r) => r.status === 'out').length;
@@ -95,27 +103,48 @@ const Home = observer(() => {
     (p) => p.status === 'active' && p.role !== 'guest',
   ).length;
   const noResponse = Math.max(0, totalActiveProfiles - inCount - outCount);
+  const lastGameTeams = lastGameId ? sessions.teamsBySession.get(lastGameId) ?? [] : [];
 
   return (
     <SafeAreaView style={styles.scrollWrap} edges={['top']}>
       <ScrollView contentContainerStyle={styles.container}>
         <Stack.Screen options={{ title: 'Morning Ball' }} />
-        <Text style={styles.heading}>Next run</Text>
 
-        <TouchableOpacity
-          activeOpacity={0.85}
-          onPress={() => router.push({ pathname: '/session/[id]', params: { id: next.id } })}
-        >
-          <SessionCard session={next}>
-            <RsvpCounts inCount={inCount} outCount={outCount} noResponseCount={noResponse} />
-            <RsvpToggle
-              current={(myRsvp?.status as RsvpStatus | undefined) ?? null}
-              onChange={onRsvpChange}
-              pending={pending}
-            />
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-          </SessionCard>
-        </TouchableOpacity>
+        {next ? (
+          <>
+            <Text style={styles.heading}>Next run</Text>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() => router.push({ pathname: '/session/[id]', params: { id: next.id } })}
+            >
+              <SessionCard session={next}>
+                <RsvpCounts inCount={inCount} outCount={outCount} noResponseCount={noResponse} />
+                <RsvpToggle
+                  current={(myRsvp?.status as RsvpStatus | undefined) ?? null}
+                  onChange={onRsvpChange}
+                  pending={pending}
+                />
+                {error ? <Text style={styles.error}>{error}</Text> : null}
+              </SessionCard>
+            </TouchableOpacity>
+          </>
+        ) : null}
+
+        {lastGame ? (
+          <>
+            <Text style={styles.heading}>Last game</Text>
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={() =>
+                router.push({ pathname: '/session/[id]', params: { id: lastGame.id } })
+              }
+            >
+              <SessionCard session={lastGame}>
+                <TeamScoreRow teams={lastGameTeams} />
+              </SessionCard>
+            </TouchableOpacity>
+          </>
+        ) : null}
 
         {busy ? (
           <View style={styles.busy}>

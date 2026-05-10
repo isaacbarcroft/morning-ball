@@ -1,4 +1,5 @@
 import { makeAutoObservable } from 'mobx';
+import { todayInAppTz } from '@/lib/date';
 import type { SessionRow, RsvpRow, TeamRow, TeamMemberRow, StatsRow } from '@/types/domain';
 
 export class SessionStore {
@@ -41,8 +42,13 @@ export class SessionStore {
   }
 
   get upcoming(): SessionRow[] {
+    const today = todayInAppTz();
     return this.all
-      .filter((s) => s.status === 'upcoming' || s.status === 'in_progress')
+      .filter(
+        (s) =>
+          (s.status === 'upcoming' || s.status === 'in_progress') &&
+          s.scheduled_for >= today,
+      )
       .sort((a, b) => a.scheduled_for.localeCompare(b.scheduled_for));
   }
 
