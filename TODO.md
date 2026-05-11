@@ -39,7 +39,7 @@ Per spec §14. Two are shipped: Force RSVP, Achievement granting.
 
 ## Tech debt / nits
 
-- [ ] Add pagination to `ProfileController.listAll()` — currently fetches the entire `profiles` table (acceptable for current member count, will not scale)
+- [x] Add pagination to `ProfileController.listAll()` — currently fetches the entire `profiles` table (acceptable for current member count, will not scale)
 - [x] Surface a UI error state when profile loads fail (today they're fire-and-forget)
 
 ## How to use this file
