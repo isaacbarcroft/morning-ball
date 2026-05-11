@@ -20,9 +20,11 @@ interface Deps {
 
 const generateCode = (length: number): string => {
   const chars = 'ABCDEFGHIJKLMNPQRSTUVWXYZ23456789';
+  const bytes = new Uint8Array(length);
+  globalThis.crypto.getRandomValues(bytes);
   let code = '';
-  for (let i = 0; i < length; i += 1) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  for (const byte of bytes) {
+    code += chars[byte % chars.length];
   }
   return code;
 };
@@ -91,11 +93,13 @@ export class AdminController {
   async createInvite(input: CreateInviteInput): Promise<ControllerResult<InviteCodeRow>> {
     const profile = this.store.auth.profile;
     if (!profile) return fail('No profile');
-    let code = input.customCode ?? generateCode(6);
-    if (input.customCode) {
+    let code: string;
+    if (input.customCode !== undefined) {
       const parsed = inviteCodeSchema.safeParse(input.customCode);
       if (!parsed.success) return fail('Invalid code format');
       code = parsed.data;
+    } else {
+      code = generateCode(6);
     }
     const insert = {
       code,
