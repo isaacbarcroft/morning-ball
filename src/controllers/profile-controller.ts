@@ -27,13 +27,31 @@ export class ProfileController {
   }
 
   async listAll(): Promise<ControllerResult<ProfileRow[]>> {
-    const { data, error } = await this.supabase.from('profiles').select('*');
-    if (error) {
-      logger.warn('profiles listAll failed', { error: error.message });
-      return fail(error.message);
+    const PAGE_SIZE = 1000;
+    const allProfiles: ProfileRow[] = [];
+    let offset = 0;
+
+    for (;;) {
+      const { data, error } = await this.supabase
+        .from('profiles')
+        .select('*')
+        .order('id', { ascending: true })
+        .range(offset, offset + PAGE_SIZE - 1);
+
+      if (error) {
+        logger.warn('profiles listAll failed', { error: error.message });
+        return fail(error.message);
+      }
+
+      const page = data ?? [];
+      allProfiles.push(...page);
+
+      if (page.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
     }
-    runInAction(() => this.store.profiles.upsertMany(data ?? []));
-    return ok(data ?? []);
+
+    runInAction(() => this.store.profiles.upsertMany(allProfiles));
+    return ok(allProfiles);
   }
 
   async updateOwn(input: ProfileSetupInput): Promise<ControllerResult<true>> {
