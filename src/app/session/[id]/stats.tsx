@@ -34,9 +34,21 @@ const StatsScreen = observer(() => {
 
   useEffect(() => {
     if (!id) return;
-    void getControllers().session.get(id);
-    void getControllers().team.listForSession(id);
-    void getControllers().stats.listForSession(id);
+    void getControllers()
+      .session.get(id)
+      .then((res) => {
+        if (!res.ok) setError(`Couldn't load session: ${res.error}`);
+      });
+    void getControllers()
+      .team.listForSession(id)
+      .then((res) => {
+        if (!res.ok) setError(`Couldn't load teams: ${res.error}`);
+      });
+    void getControllers()
+      .stats.listForSession(id)
+      .then((res) => {
+        if (!res.ok) setError(`Couldn't load stats: ${res.error}`);
+      });
     void getControllers()
       .profile.listAll()
       .then((res) => {
