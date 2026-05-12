@@ -28,9 +28,21 @@ const Teams = observer(() => {
 
   useEffect(() => {
     if (!id) return;
-    void getControllers().session.get(id);
-    void getControllers().rsvp.listForSession(id);
-    void getControllers().team.listForSession(id);
+    void getControllers()
+      .session.get(id)
+      .then((res) => {
+        if (!res.ok) setError(`Couldn't load session: ${res.error}`);
+      });
+    void getControllers()
+      .rsvp.listForSession(id)
+      .then((res) => {
+        if (!res.ok) setError(`Couldn't load RSVPs: ${res.error}`);
+      });
+    void getControllers()
+      .team.listForSession(id)
+      .then((res) => {
+        if (!res.ok) setError(`Couldn't load teams: ${res.error}`);
+      });
     void getControllers()
       .profile.listAll()
       .then((res) => {
