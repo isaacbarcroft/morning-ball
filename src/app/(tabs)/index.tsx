@@ -2,7 +2,6 @@ import { getControllers } from '@/controllers';
 import { useRealtime } from '@/hooks/use-realtime';
 import { useStores } from '@/hooks/use-stores';
 import { tokens } from '@/lib/theme';
-import { supabase } from '@/services/supabase';
 import type { RsvpStatus } from '@/types/domain';
 import { RsvpCounts } from '@/views/rsvp/rsvp-counts';
 import { RsvpToggle } from '@/views/rsvp/rsvp-toggle';
@@ -30,6 +29,7 @@ const Home = observer(() => {
 
   useEffect(() => {
     void getControllers().session.list();
+    void getControllers().profile.listAll();
   }, []);
 
   const next = sessions.next;
@@ -46,19 +46,6 @@ const Home = observer(() => {
     if (!lastGameId) return;
     void getControllers().team.listForSession(lastGameId);
   }, [lastGameId]);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const { data } = await supabase.from('profiles').select('*');
-      if (!cancelled && Array.isArray(data)) {
-        profiles.upsertMany(data);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [profiles]);
 
   const onRsvpChange = useCallback(
     async (status: RsvpStatus) => {
