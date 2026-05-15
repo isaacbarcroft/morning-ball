@@ -7,7 +7,6 @@ import { tokens } from '@/lib/theme';
 import { useStores } from '@/hooks/use-stores';
 import { useRealtime } from '@/hooks/use-realtime';
 import { getControllers } from '@/controllers';
-import { supabase } from '@/services/supabase';
 import { Avatar } from '@/views/primitives/avatar';
 import type { MessageRow } from '@/types/domain';
 
@@ -29,13 +28,12 @@ const Chat = observer(() => {
       if (cancelled || !tIdRes.ok) return;
       setThreadId(tIdRes.data);
       void getControllers().chat.listMessages(tIdRes.data);
-      const { data } = await supabase.from('profiles').select('*');
-      if (Array.isArray(data)) profiles.upsertMany(data);
+      void getControllers().profile.listAll();
     })();
     return () => {
       cancelled = true;
     };
-  }, [id, profiles]);
+  }, [id]);
 
   const handleRealtime = useCallback(() => {
     if (threadId) void getControllers().chat.listMessages(threadId);
