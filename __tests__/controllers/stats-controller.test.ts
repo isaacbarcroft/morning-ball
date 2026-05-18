@@ -12,6 +12,7 @@ const supabaseMock = () => {
   };
   return {
     from: vi.fn().mockReturnValue(builder),
+    builder,
   };
 };
 
@@ -113,5 +114,28 @@ describe('StatsController.upsert', () => {
     });
     expect(res.ok).toBe(true);
     expect(supabase.from).toHaveBeenCalledWith('player_session_stats');
+  });
+
+  it('includes computed pts in the upserted row', async () => {
+    // fgm=5, threePm=2, ftm=3 → (5-2)*2 + 2*3 + 3 = 15
+    await sc.upsert({
+      sessionId: 's',
+      profileId: 'p',
+      teamId: 't',
+      fgm: 5,
+      fga: 10,
+      threePm: 2,
+      threePa: 4,
+      ftm: 3,
+      fta: 4,
+    });
+    const [rowArg] = supabase.builder.upsert.mock.calls[0] ?? [];
+    expect(rowArg).toMatchObject({ pts: 15 });
+  });
+
+  it('includes pts=0 when all shooting fields are absent', async () => {
+    await sc.upsert({ sessionId: 's', profileId: 'p', teamId: 't', reb: 3 });
+    const [rowArg] = supabase.builder.upsert.mock.calls[0] ?? [];
+    expect(rowArg).toMatchObject({ pts: 0 });
   });
 });
