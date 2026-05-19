@@ -7,7 +7,6 @@ import { tokens } from '@/lib/theme';
 import { useStores } from '@/hooks/use-stores';
 import { useRealtime } from '@/hooks/use-realtime';
 import { getControllers } from '@/controllers';
-import { supabase } from '@/services/supabase';
 import { Pill } from '@/views/primitives/pill';
 import { RsvpToggle } from '@/views/rsvp/rsvp-toggle';
 import { RsvpList } from '@/views/rsvp/rsvp-list';
@@ -26,11 +25,8 @@ const SessionDetail = observer(() => {
     if (!id) return;
     void getControllers().session.get(id);
     void getControllers().rsvp.listForSession(id);
-    void (async () => {
-      const { data } = await supabase.from('profiles').select('*');
-      if (Array.isArray(data)) profiles.upsertMany(data);
-    })();
-  }, [id, profiles]);
+    void getControllers().profile.listAll();
+  }, [id]);
 
   const handleRealtime = useCallback(() => {
     if (id) void getControllers().rsvp.listForSession(id);
