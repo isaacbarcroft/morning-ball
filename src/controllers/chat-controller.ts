@@ -4,6 +4,7 @@ import { logger } from '@/services/logger';
 import { firePushEvent } from '@/services/push-events';
 import type { RootStore } from '@/stores/root-store';
 import { fail, ok, type ControllerResult, type MessageRow } from '@/types/domain';
+import { CHAT_MESSAGE_MAX_CHARS, CHAT_PUSH_PREVIEW_CHARS } from '@/lib/constants';
 
 interface ChatControllerDeps {
   supabase: AppSupabase;
@@ -46,7 +47,7 @@ export class ChatController {
   async post(threadId: string, body: string): Promise<ControllerResult<MessageRow>> {
     const trimmed = body.trim();
     if (trimmed.length < 1) return fail('Message is empty');
-    if (trimmed.length > 2000) return fail('Message too long (max 2000 characters)');
+    if (trimmed.length > CHAT_MESSAGE_MAX_CHARS) return fail(`Message too long (max ${CHAT_MESSAGE_MAX_CHARS} characters)`);
     const profile = this.store.auth.profile;
     if (!profile) return fail('No profile');
 
@@ -73,7 +74,7 @@ export class ChatController {
         recipients: 'session_participants',
         excludeProfileIds: [profile.id],
         title: profile.display_name,
-        body: trimmed.slice(0, 120),
+        body: trimmed.slice(0, CHAT_PUSH_PREVIEW_CHARS),
       });
     }
 

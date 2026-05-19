@@ -29,6 +29,7 @@ const Home = observer(() => {
 
   useEffect(() => {
     void getControllers().session.list();
+    void getControllers().profile.listAll();
   }, []);
 
   const next = sessions.next;
@@ -45,10 +46,6 @@ const Home = observer(() => {
     if (!lastGameId) return;
     void getControllers().team.listForSession(lastGameId);
   }, [lastGameId]);
-
-  useEffect(() => {
-    void getControllers().profile.listAll();
-  }, []);
 
   const onRsvpChange = useCallback(
     async (status: RsvpStatus) => {
