@@ -62,6 +62,46 @@ export interface RecordEntry {
   games_played: number;
 }
 
+// Shape of a single row returned from the player_session_stats + sessions join.
+interface SessionStatRow {
+  profile_id: string;
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  turnovers: number;
+  fgm: number;
+  fga: number;
+  three_pm: number;
+  three_pa: number;
+  ftm: number;
+  fta: number;
+}
+
+// Mutable per-profile running totals before converting to averages.
+interface StatAccumulator {
+  games: number;
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  turnovers: number;
+  fgm: number;
+  fga: number;
+  threePm: number;
+  threePa: number;
+  ftm: number;
+  fta: number;
+}
+
+const perGame = (total: number, games: number): number =>
+  games === 0 ? 0 : Math.round((total / games) * 10) / 10;
+
+const pct = (made: number, attempted: number): number =>
+  attempted === 0 ? 0 : Math.round((made / attempted) * 1000) / 10;
+
 interface Deps {
   supabase: AppSupabase;
 }
@@ -128,15 +168,15 @@ export class LeaderboardController {
     const entries: LeaderboardEntry[] = Array.from(byProfile.entries()).map(([profileId, acc]) => ({
       profile_id: profileId,
       games: acc.games,
-      ppg: acc.games === 0 ? 0 : Math.round((acc.pts / acc.games) * 10) / 10,
-      rpg: acc.games === 0 ? 0 : Math.round((acc.reb / acc.games) * 10) / 10,
-      apg: acc.games === 0 ? 0 : Math.round((acc.ast / acc.games) * 10) / 10,
-      spg: acc.games === 0 ? 0 : Math.round((acc.stl / acc.games) * 10) / 10,
-      bpg: acc.games === 0 ? 0 : Math.round((acc.blk / acc.games) * 10) / 10,
-      topg: acc.games === 0 ? 0 : Math.round((acc.turnovers / acc.games) * 10) / 10,
-      fg_pct: acc.fga === 0 ? 0 : Math.round((acc.fgm / acc.fga) * 1000) / 10,
-      three_pt_pct: acc.threePa === 0 ? 0 : Math.round((acc.threePm / acc.threePa) * 1000) / 10,
-      ft_pct: acc.fta === 0 ? 0 : Math.round((acc.ftm / acc.fta) * 1000) / 10,
+      ppg: perGame(acc.pts, acc.games),
+      rpg: perGame(acc.reb, acc.games),
+      apg: perGame(acc.ast, acc.games),
+      spg: perGame(acc.stl, acc.games),
+      bpg: perGame(acc.blk, acc.games),
+      topg: perGame(acc.turnovers, acc.games),
+      fg_pct: pct(acc.fgm, acc.fga),
+      three_pt_pct: pct(acc.threePm, acc.threePa),
+      ft_pct: pct(acc.ftm, acc.fta),
     }));
     return ok(entries);
   }
