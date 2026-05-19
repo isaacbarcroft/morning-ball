@@ -78,6 +78,7 @@ export class StatsController {
       session_id: input.sessionId,
       profile_id: input.profileId,
       team_id: input.teamId,
+      pts: this.computePts(input),
       reb: nonNegative(input.reb),
       ast: nonNegative(input.ast),
       stl: nonNegative(input.stl),
