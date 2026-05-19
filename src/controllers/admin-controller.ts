@@ -1,6 +1,7 @@
 import type { AppSupabase } from '@/services/supabase';
 import { logger } from '@/services/logger';
 import type { RootStore } from '@/stores/root-store';
+import type { Json } from '@/types/database';
 import {
   fail,
   ok,
@@ -68,7 +69,7 @@ export class AdminController {
   private async logAction(
     actionType: string,
     targetId: string | null,
-    metadata: Record<string, unknown>,
+    metadata: Record<string, Json>,
   ): Promise<void> {
     const adminId = this.store.auth.profile?.id;
     if (!adminId) return;
@@ -76,7 +77,7 @@ export class AdminController {
       admin_id: adminId,
       action_type: actionType,
       target_id: targetId,
-      metadata: metadata as never,
+      metadata,
     });
     if (error) logger.warn('admin_actions log failed', { error: error.message });
   }
