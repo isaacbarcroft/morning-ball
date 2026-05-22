@@ -1,10 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Session } from '@supabase/supabase-js';
 import { ProfileController, PROFILE_PAGE_SIZE } from '@/controllers/profile-controller';
 import { RootStore } from '@/stores/root-store';
 import type { AppSupabase } from '@/services/supabase';
 import type { ProfileRow } from '@/types/domain';
 
-vi.mock('expo-file-system/legacy', () => ({}));
+vi.mock('expo-file-system/legacy', () => ({
+  readAsStringAsync: vi.fn().mockResolvedValue(''),
+  EncodingType: { Base64: 'base64' },
+}));
 
 const fakeProfile = (id: string): ProfileRow => ({
   id,
@@ -224,5 +228,98 @@ describe('ProfileController.listAll', () => {
 
     expect(store.profiles.get('existing')).toBeDefined();
     expect(store.profiles.all).toHaveLength(1);
+  });
+});
+
+const fakeSession = (userId: string): Session =>
+  ({ user: { id: userId } }) as unknown as Session;
+
+interface AvatarUploadMockOptions {
+  uploadError?: { message: string } | null;
+  updateError?: { message: string } | null;
+  removeError?: { message: string } | null;
+}
+
+const buildAvatarMock = ({
+  uploadError = null,
+  updateError = null,
+  removeError = null,
+}: AvatarUploadMockOptions = {}) => {
+  const remove = vi.fn().mockResolvedValue({ error: removeError });
+  const upload = vi.fn().mockResolvedValue({ error: uploadError });
+  const getPublicUrl = vi
+    .fn()
+    .mockReturnValue({ data: { publicUrl: 'https://cdn.example.com/avatars/user-1/avatar.jpg' } });
+  const storageBucket = { upload, getPublicUrl, remove };
+  const storageFrom = vi.fn().mockReturnValue(storageBucket);
+
+  const eq = vi.fn().mockResolvedValue({ error: updateError });
+  const update = vi.fn().mockReturnValue({ eq });
+  const dbFrom = vi.fn().mockReturnValue({ update });
+
+  const supabase = {
+    storage: { from: storageFrom },
+    from: dbFrom,
+  } as unknown as AppSupabase;
+
+  return { supabase, remove, upload, getPublicUrl, storageFrom, update, eq };
+};
+
+describe('ProfileController.uploadAvatar', () => {
+  let store: RootStore;
+
+  beforeEach(() => {
+    store = new RootStore();
+  });
+
+  it('returns failure immediately when not authenticated', async () => {
+    const { supabase, upload } = buildAvatarMock();
+    const controller = new ProfileController({ supabase, store });
+
+    const res = await controller.uploadAvatar({ uri: 'file://img.jpg', contentType: 'image/jpeg', extension: 'jpg' });
+
+    expect(res.ok).toBe(false);
+    expect(upload).not.toHaveBeenCalled();
+  });
+
+  it('returns failure when storage upload errors', async () => {
+    store.auth.setSession(fakeSession('user-1'));
+    store.auth.setProfile(fakeProfile('profile-1'));
+    const { supabase, update } = buildAvatarMock({ uploadError: { message: 'quota exceeded' } });
+    const controller = new ProfileController({ supabase, store });
+
+    const res = await controller.uploadAvatar({ uri: 'file://img.jpg', contentType: 'image/jpeg', extension: 'jpg' });
+
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toBe('quota exceeded');
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('returns ok and updates the store when upload and DB update both succeed', async () => {
+    store.auth.setSession(fakeSession('user-1'));
+    store.auth.setProfile(fakeProfile('profile-1'));
+    const { supabase, remove } = buildAvatarMock();
+    const controller = new ProfileController({ supabase, store });
+
+    const res = await controller.uploadAvatar({ uri: 'file://img.jpg', contentType: 'image/jpeg', extension: 'jpg' });
+
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.data.url).toBe('https://cdn.example.com/avatars/user-1/avatar.jpg');
+    expect(store.auth.profile?.avatar_url).toBe('https://cdn.example.com/avatars/user-1/avatar.jpg');
+    expect(remove).not.toHaveBeenCalled();
+  });
+
+  it('deletes the uploaded file and returns failure when DB update fails', async () => {
+    store.auth.setSession(fakeSession('user-1'));
+    store.auth.setProfile(fakeProfile('profile-1'));
+    const { supabase, remove } = buildAvatarMock({ updateError: { message: 'db error' } });
+    const controller = new ProfileController({ supabase, store });
+
+    const res = await controller.uploadAvatar({ uri: 'file://img.jpg', contentType: 'image/jpeg', extension: 'jpg' });
+
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toBe('db error');
+    expect(remove).toHaveBeenCalledOnce();
+    expect(store.auth.profile?.avatar_url).toBeNull();
   });
 });
