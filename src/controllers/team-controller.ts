@@ -135,6 +135,11 @@ export class TeamController {
       const { error: membersError } = await this.supabase.from('team_members').insert(memberRows);
       if (membersError) {
         logger.warn('team_members insert failed', { error: membersError.message });
+        // Roll back the team rows so the session doesn't end up with teams but no members.
+        await this.supabase
+          .from('teams')
+          .delete()
+          .in('id', [teamA.id, teamB.id]);
         return fail(membersError.message);
       }
     }
