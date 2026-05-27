@@ -62,40 +62,6 @@ export interface RecordEntry {
   games_played: number;
 }
 
-// Shape of a single row returned from the player_session_stats + sessions join.
-interface SessionStatRow {
-  profile_id: string;
-  pts: number;
-  reb: number;
-  ast: number;
-  stl: number;
-  blk: number;
-  turnovers: number;
-  fgm: number;
-  fga: number;
-  three_pm: number;
-  three_pa: number;
-  ftm: number;
-  fta: number;
-}
-
-// Mutable per-profile running totals before converting to averages.
-interface StatAccumulator {
-  games: number;
-  pts: number;
-  reb: number;
-  ast: number;
-  stl: number;
-  blk: number;
-  turnovers: number;
-  fgm: number;
-  fga: number;
-  threePm: number;
-  threePa: number;
-  ftm: number;
-  fta: number;
-}
-
 const perGame = (total: number, games: number): number =>
   games === 0 ? 0 : Math.round((total / games) * 10) / 10;
 
