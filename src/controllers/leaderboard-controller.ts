@@ -3,7 +3,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import type { AppSupabase } from '@/services/supabase';
 import { APP_TIMEZONE } from '@/lib/constants';
 import { logger } from '@/services/logger';
-import { fail, ok, type ControllerResult } from '@/types/domain';
+import { fail, ok, type ControllerResult, type StatsRow } from '@/types/domain';
 
 const RECENT_WINDOW_DAYS = 30;
 
@@ -35,6 +35,24 @@ const perGame = (total: number, games: number): number =>
 
 const pct = (made: number, attempted: number): number =>
   attempted === 0 ? 0 : Math.round((made / attempted) * 1000) / 10;
+
+type SessionStatRow = StatsRow;
+
+interface StatAccumulator {
+  games: number;
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  turnovers: number;
+  fgm: number;
+  fga: number;
+  threePm: number;
+  threePa: number;
+  ftm: number;
+  fta: number;
+}
 
 interface Deps {
   supabase: AppSupabase;
@@ -85,7 +103,7 @@ export class LeaderboardController {
         fgm: 0, fga: 0, threePm: 0, threePa: 0, ftm: 0, fta: 0,
       };
       acc.games += 1;
-      acc.pts += row.pts;
+      acc.pts += row.pts ?? 0;
       acc.reb += row.reb;
       acc.ast += row.ast;
       acc.stl += row.stl;

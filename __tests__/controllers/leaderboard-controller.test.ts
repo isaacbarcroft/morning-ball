@@ -111,6 +111,27 @@ describe('LeaderboardController.last30Days', () => {
     if (!res.ok) expect(res.error).toBe('boom');
   });
 
+  it('treats null pts as 0 when computing ppg', async () => {
+    const rows = [
+      { profile_id: 'a', ...baseRow, pts: null, reb: 4 },
+      { profile_id: 'a', ...baseRow, pts: 10, reb: 6 },
+    ];
+    const { from } = buildSupabase({ data: rows, error: null });
+    const controller = new LeaderboardController({
+      supabase: { from } as unknown as AppSupabase,
+    });
+
+    const res = await controller.last30Days();
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const entry = res.data.find((e) => e.profile_id === 'a');
+    expect(entry?.games).toBe(2);
+    // null pts counted as 0 → (0 + 10) / 2 = 5
+    expect(entry?.ppg).toBe(5);
+    // non-null fields unaffected → (4 + 6) / 2 = 5
+    expect(entry?.rpg).toBe(5);
+  });
+
   it('zero-divides safely when shooting attempts are zero', async () => {
     const rows = [{ profile_id: 'a', ...baseRow, pts: 5, ftm: 5, fta: 0 }];
     const { from } = buildSupabase({ data: rows, error: null });
