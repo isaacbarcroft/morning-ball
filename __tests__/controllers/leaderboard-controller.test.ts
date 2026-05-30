@@ -111,6 +111,21 @@ describe('LeaderboardController.last30Days', () => {
     if (!res.ok) expect(res.error).toBe('boom');
   });
 
+  it('treats null pts as zero', async () => {
+    const rows = [{ profile_id: 'a', ...baseRow, pts: null, reb: 7 }];
+    const { from } = buildSupabase({ data: rows, error: null });
+    const controller = new LeaderboardController({
+      supabase: { from } as unknown as AppSupabase,
+    });
+
+    const res = await controller.last30Days();
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    const entry = res.data[0];
+    expect(entry?.ppg).toBe(0);
+    expect(entry?.rpg).toBe(7);
+  });
+
   it('zero-divides safely when shooting attempts are zero', async () => {
     const rows = [{ profile_id: 'a', ...baseRow, pts: 5, ftm: 5, fta: 0 }];
     const { from } = buildSupabase({ data: rows, error: null });

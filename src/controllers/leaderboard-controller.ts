@@ -30,6 +30,41 @@ export interface RecordEntry {
   games_played: number;
 }
 
+// Shape of a single row returned from the player_session_stats + sessions join.
+// The sessions sub-object is used only for filtering (.gte) and is not accessed in the loop.
+interface SessionStatRow {
+  profile_id: string;
+  pts: number | null;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  turnovers: number;
+  fgm: number;
+  fga: number;
+  three_pm: number;
+  three_pa: number;
+  ftm: number;
+  fta: number;
+}
+
+// Mutable per-profile running totals before converting to per-game averages.
+interface StatAccumulator {
+  games: number;
+  pts: number;
+  reb: number;
+  ast: number;
+  stl: number;
+  blk: number;
+  turnovers: number;
+  fgm: number;
+  fga: number;
+  threePm: number;
+  threePa: number;
+  ftm: number;
+  fta: number;
+}
+
 const perGame = (total: number, games: number): number =>
   games === 0 ? 0 : Math.round((total / games) * 10) / 10;
 
@@ -85,7 +120,7 @@ export class LeaderboardController {
         fgm: 0, fga: 0, threePm: 0, threePa: 0, ftm: 0, fta: 0,
       };
       acc.games += 1;
-      acc.pts += row.pts;
+      acc.pts += row.pts ?? 0;
       acc.reb += row.reb;
       acc.ast += row.ast;
       acc.stl += row.stl;
