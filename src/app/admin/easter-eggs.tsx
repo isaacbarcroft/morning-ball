@@ -38,13 +38,23 @@ export default function EasterEggs() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const [{ data: profileData }, { data: sessionData }] = await Promise.all([
-        supabase.from('profiles').select('*').order('display_name'),
-        supabase.from('sessions').select('*').order('scheduled_for', { ascending: false }),
-      ]);
-      if (cancelled) return;
-      if (Array.isArray(profileData)) setProfiles(profileData);
-      if (Array.isArray(sessionData)) setSessions(sessionData);
+      try {
+        const [
+          { data: profileData, error: profileError },
+          { data: sessionData, error: sessionError },
+        ] = await Promise.all([
+          supabase.from('profiles').select('*').order('display_name'),
+          supabase.from('sessions').select('*').order('scheduled_for', { ascending: false }),
+        ]);
+        if (cancelled) return;
+        if (Array.isArray(profileData)) setProfiles(profileData);
+        if (Array.isArray(sessionData)) setSessions(sessionData);
+        const loadError = profileError ?? sessionError;
+        if (loadError) setMessage(`Failed to load data — ${loadError.message}`);
+      } catch (err) {
+        if (cancelled) return;
+        setMessage(err instanceof Error ? err.message : 'Failed to load data');
+      }
     })();
     return () => {
       cancelled = true;
