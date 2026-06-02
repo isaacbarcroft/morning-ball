@@ -15,3 +15,6 @@ export const PROFILE_HEIGHT_MIN_INCHES = 48 as const;
 export const PROFILE_HEIGHT_MAX_INCHES = 90 as const;
 export const PROFILE_SKILL_MIN = 1 as const;
 export const PROFILE_SKILL_MAX = 5 as const;
+
+export const AVATAR_ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+export type AvatarMimeType = (typeof AVATAR_ALLOWED_MIME_TYPES)[number];

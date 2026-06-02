@@ -282,6 +282,22 @@ describe('ProfileController.uploadAvatar', () => {
     expect(upload).not.toHaveBeenCalled();
   });
 
+  it('rejects unsupported content types before reading the file', async () => {
+    store.auth.setSession(fakeSession('user-1'));
+    store.auth.setProfile(fakeProfile('profile-1'));
+    const { supabase, upload } = buildAvatarMock();
+    const controller = new ProfileController({ supabase, store });
+
+    const res = await controller.uploadAvatar({ uri: 'file://doc.pdf', contentType: 'application/pdf', extension: 'pdf' });
+
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error).toBe('Only JPEG, PNG, and WebP images are supported');
+      expect(res.code).toBe('invalid_mime_type');
+    }
+    expect(upload).not.toHaveBeenCalled();
+  });
+
   it('returns failure when storage upload errors', async () => {
     store.auth.setSession(fakeSession('user-1'));
     store.auth.setProfile(fakeProfile('profile-1'));

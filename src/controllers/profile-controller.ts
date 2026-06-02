@@ -5,6 +5,7 @@ import { logger } from '@/services/logger';
 import type { RootStore } from '@/stores/root-store';
 import { fail, ok, type ControllerResult, type ProfileRow } from '@/types/domain';
 import { profileSetupSchema, type ProfileSetupInput } from '@/lib/validation';
+import { AVATAR_ALLOWED_MIME_TYPES } from '@/lib/constants';
 
 interface ProfileControllerDeps {
   supabase: AppSupabase;
@@ -101,6 +102,10 @@ export class ProfileController {
     const session = this.store.auth.session;
     const profile = this.store.auth.profile;
     if (!session || !profile) return fail('Not authenticated');
+
+    if (!(AVATAR_ALLOWED_MIME_TYPES as readonly string[]).includes(input.contentType)) {
+      return fail('Only JPEG, PNG, and WebP images are supported', 'invalid_mime_type');
+    }
 
     const filename = `avatar-${Date.now()}.${input.extension}`;
     const path = `${session.user.id}/${filename}`;
