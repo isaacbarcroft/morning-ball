@@ -1,39 +1,14 @@
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { tokens } from '@/lib/theme';
+import { computePts, emptyStatLine } from '@/lib/stat-line';
 import { Avatar } from '@/views/primitives/avatar';
 import { StatStepper } from './stat-stepper';
 import type { ProfileRow } from '@/types/domain';
+import type { StatLine } from '@/lib/stat-line';
 
-export interface StatLine {
-  reb: number;
-  ast: number;
-  stl: number;
-  blk: number;
-  turnovers: number;
-  fgm: number;
-  fga: number;
-  threePm: number;
-  threePa: number;
-  ftm: number;
-  fta: number;
-}
-
-export const emptyStatLine = (): StatLine => ({
-  reb: 0,
-  ast: 0,
-  stl: 0,
-  blk: 0,
-  turnovers: 0,
-  fgm: 0,
-  fga: 0,
-  threePm: 0,
-  threePa: 0,
-  ftm: 0,
-  fta: 0,
-});
-
-const computePts = (line: StatLine): number => (line.fgm - line.threePm) * 2 + line.threePm * 3 + line.ftm;
+export type { StatLine };
+export { emptyStatLine };
 
 interface StatsRowProps {
   player: ProfileRow;
