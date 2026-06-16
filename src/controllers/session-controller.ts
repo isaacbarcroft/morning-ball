@@ -37,7 +37,10 @@ export class SessionController {
       .select('*')
       .eq('id', id)
       .single();
-    if (error || !data) return fail(error?.message ?? 'Session not found');
+    if (error || !data) {
+      logger.warn('session get failed', { error: error?.message ?? 'not found', id });
+      return fail(error?.message ?? 'Session not found');
+    }
     runInAction(() => this.store.sessions.upsertSession(data));
     return ok(data);
   }
