@@ -5,7 +5,8 @@ import { observer } from 'mobx-react-lite';
 import { tokens } from '@/lib/theme';
 import { useStores } from '@/hooks/use-stores';
 import { getControllers } from '@/controllers';
-import { StatsRow, type StatLine, emptyStatLine } from '@/views/stats/stats-row';
+import { StatsRow } from '@/views/stats/stats-row';
+import { type StatLine, emptyStatLine, statLineEquals } from '@/lib/stat-line';
 import type { ProfileRow, StatsRow as StatsDbRow, TeamRow } from '@/types/domain';
 
 const dbRowToLine = (row: StatsDbRow): StatLine => ({
@@ -114,10 +115,8 @@ const StatsScreen = observer(() => {
 
   const isDirty = (profileId: string): boolean => {
     const current = lines.get(profileId);
-    const saved = savedLines.get(profileId);
     if (!current) return false;
-    if (!saved) return JSON.stringify(current) !== JSON.stringify(emptyStatLine());
-    return JSON.stringify(current) !== JSON.stringify(saved);
+    return !statLineEquals(current, savedLines.get(profileId) ?? emptyStatLine());
   };
 
   const saveRow = useCallback(
