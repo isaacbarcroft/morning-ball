@@ -111,8 +111,11 @@ describe('LeaderboardController.last30Days', () => {
     if (!res.ok) expect(res.error).toBe('boom');
   });
 
-  it('treats null pts as zero', async () => {
-    const rows = [{ profile_id: 'a', ...baseRow, pts: null, reb: 7 }];
+  it('treats null pts as 0 when computing ppg', async () => {
+    const rows = [
+      { profile_id: 'a', ...baseRow, pts: null, reb: 4 },
+      { profile_id: 'a', ...baseRow, pts: 10, reb: 6 },
+    ];
     const { from } = buildSupabase({ data: rows, error: null });
     const controller = new LeaderboardController({
       supabase: { from } as unknown as AppSupabase,
@@ -121,9 +124,12 @@ describe('LeaderboardController.last30Days', () => {
     const res = await controller.last30Days();
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    const entry = res.data[0];
-    expect(entry?.ppg).toBe(0);
-    expect(entry?.rpg).toBe(7);
+    const entry = res.data.find((e) => e.profile_id === 'a');
+    expect(entry?.games).toBe(2);
+    // null pts counted as 0 → (0 + 10) / 2 = 5
+    expect(entry?.ppg).toBe(5);
+    // non-null fields unaffected → (4 + 6) / 2 = 5
+    expect(entry?.rpg).toBe(5);
   });
 
   it('zero-divides safely when shooting attempts are zero', async () => {
@@ -188,5 +194,19 @@ describe('LeaderboardController.career and records', () => {
     const res = await controller.career();
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe('nope');
+  });
+
+  it('records surfaces errors', async () => {
+    const builder = {
+      select: vi.fn().mockResolvedValue({ data: null, error: { message: 'db down' } }),
+    };
+    const supabase = { from: vi.fn().mockReturnValue(builder) };
+    const controller = new LeaderboardController({
+      supabase: supabase as unknown as AppSupabase,
+    });
+
+    const res = await controller.records();
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toBe('db down');
   });
 });

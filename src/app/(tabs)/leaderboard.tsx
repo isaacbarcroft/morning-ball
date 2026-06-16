@@ -136,7 +136,9 @@ const Leaderboard = observer(() => {
   const [stat, setStat] = useState<StatKey>('record');
   const [range, setRange] = useState<Range>('all');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
+  const [dataLoadError, setDataLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -152,6 +154,7 @@ const Leaderboard = observer(() => {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setDataLoadError(null);
     const controller = getControllers().leaderboard;
     const statsFetcher = range === 'all' ? controller.career() : controller.last30Days();
     void Promise.all([statsFetcher, controller.records()]).then(([statsRes, recordsRes]) => {
@@ -159,6 +162,8 @@ const Leaderboard = observer(() => {
       setLoading(false);
       if (statsRes.ok) setEntries(statsRes.data);
       if (recordsRes.ok) setRecords(recordsRes.data);
+      const fetchError = !statsRes.ok ? statsRes.error : !recordsRes.ok ? recordsRes.error : null;
+      setDataLoadError(fetchError);
     });
     return () => {
       cancelled = true;
@@ -201,6 +206,12 @@ const Leaderboard = observer(() => {
       {profileLoadError ? (
         <View style={styles.errorBanner}>
           <Text style={styles.errorBannerText}>Could not load player names — {profileLoadError}</Text>
+        </View>
+      ) : null}
+
+      {dataLoadError ? (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorBannerText}>Could not load stats — {dataLoadError}</Text>
         </View>
       ) : null}
 
