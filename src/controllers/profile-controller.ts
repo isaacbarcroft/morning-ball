@@ -27,6 +27,7 @@ export const PROFILE_PAGE_SIZE = 200;
 export class ProfileController {
   private supabase: AppSupabase;
   private store: RootStore;
+  private _listAllInFlight: Promise<ControllerResult<ProfileRow[]>> | null = null;
 
   constructor(deps: ProfileControllerDeps) {
     this.supabase = deps.supabase;
@@ -51,6 +52,14 @@ export class ProfileController {
   }
 
   async listAll(): Promise<ControllerResult<ProfileRow[]>> {
+    if (this._listAllInFlight) return this._listAllInFlight;
+    this._listAllInFlight = this._fetchAllPages().finally(() => {
+      this._listAllInFlight = null;
+    });
+    return this._listAllInFlight;
+  }
+
+  private async _fetchAllPages(): Promise<ControllerResult<ProfileRow[]>> {
     const all: ProfileRow[] = [];
     let offset = 0;
     while (true) {

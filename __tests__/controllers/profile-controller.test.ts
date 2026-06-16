@@ -216,6 +216,70 @@ describe('ProfileController.listAll', () => {
     if (!res.ok) expect(res.error).toBe('boom');
   });
 
+  it('concurrent calls share a single in-flight request', async () => {
+    let resolveFirst!: (v: { data: ProfileRow[]; error: null }) => void;
+    const firstCallPromise = new Promise<{ data: ProfileRow[]; error: null }>((res) => {
+      resolveFirst = res;
+    });
+    let callCount = 0;
+    const range = vi.fn(() => {
+      callCount++;
+      return firstCallPromise;
+    });
+    const order = vi.fn().mockReturnValue({ range });
+    const select = vi.fn().mockReturnValue({ order });
+    const from = vi.fn().mockReturnValue({ select });
+    const supabase = { from } as unknown as AppSupabase;
+    const controller = new ProfileController({ supabase, store });
+
+    const p1 = controller.listAll();
+    const p2 = controller.listAll();
+    const p3 = controller.listAll();
+
+    resolveFirst({ data: [], error: null });
+    const [r1, r2, r3] = await Promise.all([p1, p2, p3]);
+
+    expect(callCount).toBe(1);
+    expect(r1).toBe(r2);
+    expect(r1).toBe(r3);
+  });
+
+  it('allows a fresh fetch after the previous one settles', async () => {
+    let callCount = 0;
+    const mock = buildSupabaseMock(() => {
+      callCount++;
+      return { data: [], error: null };
+    });
+    const controller = new ProfileController({
+      supabase: mock as unknown as AppSupabase,
+      store,
+    });
+
+    await controller.listAll();
+    await controller.listAll();
+
+    expect(callCount).toBe(2);
+  });
+
+  it('allows a retry after a failed fetch', async () => {
+    let callCount = 0;
+    const mock = buildSupabaseMock(() => {
+      callCount++;
+      return { data: null, error: { message: 'boom' } };
+    });
+    const controller = new ProfileController({
+      supabase: mock as unknown as AppSupabase,
+      store,
+    });
+
+    const r1 = await controller.listAll();
+    const r2 = await controller.listAll();
+
+    expect(callCount).toBe(2);
+    expect(r1.ok).toBe(false);
+    expect(r2.ok).toBe(false);
+  });
+
   it('does not mutate the store on error', async () => {
     const mock = buildSupabaseMock(() => ({ data: null, error: { message: 'boom' } }));
     store.profiles.upsert(fakeProfile('existing'));
