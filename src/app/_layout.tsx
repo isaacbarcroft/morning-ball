@@ -18,7 +18,7 @@ export default function RootLayout() {
   useEffect(() => {
     logger.debug('_layout hydrate effect start');
     SplashScreen.hideAsync().catch((err: unknown) =>
-      logger.warn('splash hideAsync failed', { error: String(err) }),
+      logger.warn('splash hideAsync failed', { error: err instanceof Error ? err.message : String(err) }),
     );
     let cancelled = false;
     const controllers = getControllers();
@@ -36,7 +36,7 @@ export default function RootLayout() {
     controllers.auth
       .hydrate()
       .then(() => logger.debug('auth hydrate resolved'))
-      .catch((err: unknown) => logger.error('auth hydrate failed', { error: String(err) }))
+      .catch((err: unknown) => logger.error('auth hydrate failed', { error: err instanceof Error ? err.message : String(err) }))
       .finally(() => {
         if (!cancelled) setHydrated(true);
       });

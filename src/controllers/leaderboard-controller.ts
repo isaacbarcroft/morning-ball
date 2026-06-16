@@ -9,38 +9,6 @@ const RECENT_WINDOW_DAYS = 30;
 
 export type LeaderboardStat = 'ppg' | 'rpg' | 'apg' | 'spg' | 'bpg' | 'topg' | 'fg_pct' | 'three_pt_pct' | 'ft_pct';
 
-interface StatsAccumulator {
-  games: number;
-  pts: number;
-  reb: number;
-  ast: number;
-  stl: number;
-  blk: number;
-  turnovers: number;
-  fgm: number;
-  fga: number;
-  threePm: number;
-  threePa: number;
-  ftm: number;
-  fta: number;
-}
-
-interface PlayerSessionStatsRow {
-  profile_id: string;
-  pts: number;
-  reb: number;
-  ast: number;
-  stl: number;
-  blk: number;
-  turnovers: number;
-  fgm: number;
-  fga: number;
-  three_pm: number;
-  three_pa: number;
-  ftm: number;
-  fta: number;
-}
-
 export interface LeaderboardEntry {
   profile_id: string;
   games: number;
@@ -60,40 +28,6 @@ export interface RecordEntry {
   wins: number;
   losses: number;
   games_played: number;
-}
-
-// Shape of a single row returned from the player_session_stats + sessions join.
-interface SessionStatRow {
-  profile_id: string;
-  pts: number;
-  reb: number;
-  ast: number;
-  stl: number;
-  blk: number;
-  turnovers: number;
-  fgm: number;
-  fga: number;
-  three_pm: number;
-  three_pa: number;
-  ftm: number;
-  fta: number;
-}
-
-// Mutable per-profile running totals before converting to averages.
-interface StatAccumulator {
-  games: number;
-  pts: number;
-  reb: number;
-  ast: number;
-  stl: number;
-  blk: number;
-  turnovers: number;
-  fgm: number;
-  fga: number;
-  threePm: number;
-  threePa: number;
-  ftm: number;
-  fta: number;
 }
 
 const perGame = (total: number, games: number): number =>
@@ -126,7 +60,10 @@ export class LeaderboardController {
 
   async records(): Promise<ControllerResult<RecordEntry[]>> {
     const { data, error } = await this.supabase.from('profile_records').select('*');
-    if (error) return fail(error.message);
+    if (error) {
+      logger.warn('records fetch failed', { error: error.message });
+      return fail(error.message);
+    }
     return ok((data ?? []) as RecordEntry[]);
   }
 
@@ -144,8 +81,8 @@ export class LeaderboardController {
       logger.warn('last30 stats fetch failed', { error: error.message });
       return fail(error.message);
     }
-    const byProfile = new Map<string, StatsAccumulator>();
-    for (const row of (data ?? []) as PlayerSessionStatsRow[]) {
+    const byProfile = new Map<string, StatAccumulator>();
+    for (const row of (data ?? []) as SessionStatRow[]) {
       const acc = byProfile.get(row.profile_id) ?? {
         games: 0, pts: 0, reb: 0, ast: 0, stl: 0, blk: 0, turnovers: 0,
         fgm: 0, fga: 0, threePm: 0, threePa: 0, ftm: 0, fta: 0,

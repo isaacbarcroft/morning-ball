@@ -127,6 +127,10 @@ export class ProfileController {
       .eq('id', profile.id);
     if (updateError) {
       logger.warn('profile avatar_url save failed', { error: updateError.message });
+      const { error: removeError } = await this.supabase.storage.from('avatars').remove([path]);
+      if (removeError) {
+        logger.warn('avatar storage cleanup failed', { error: removeError.message, path });
+      }
       return fail(updateError.message);
     }
 

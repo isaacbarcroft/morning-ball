@@ -174,4 +174,18 @@ describe('LeaderboardController.career and records', () => {
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe('nope');
   });
+
+  it('records surfaces errors', async () => {
+    const builder = {
+      select: vi.fn().mockResolvedValue({ data: null, error: { message: 'db down' } }),
+    };
+    const supabase = { from: vi.fn().mockReturnValue(builder) };
+    const controller = new LeaderboardController({
+      supabase: supabase as unknown as AppSupabase,
+    });
+
+    const res = await controller.records();
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toBe('db down');
+  });
 });
