@@ -136,8 +136,9 @@ const Leaderboard = observer(() => {
   const [stat, setStat] = useState<StatKey>('record');
   const [range, setRange] = useState<Range>('all');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [dataLoadError, setDataLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -153,22 +154,17 @@ const Leaderboard = observer(() => {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    setFetchError(null);
+    setDataLoadError(null);
     const controller = getControllers().leaderboard;
     const statsFetcher = range === 'all' ? controller.career() : controller.last30Days();
-    void Promise.all([statsFetcher, controller.records()])
-      .then(([statsRes, recordsRes]) => {
-        if (cancelled) return;
-        setLoading(false);
-        if (statsRes.ok) setEntries(statsRes.data);
-        if (recordsRes.ok) setRecords(recordsRes.data);
-        if (!statsRes.ok && !recordsRes.ok) setFetchError('Could not load stats');
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setLoading(false);
-        setFetchError(err instanceof Error ? err.message : 'Could not load stats');
-      });
+    void Promise.all([statsFetcher, controller.records()]).then(([statsRes, recordsRes]) => {
+      if (cancelled) return;
+      setLoading(false);
+      if (statsRes.ok) setEntries(statsRes.data);
+      if (recordsRes.ok) setRecords(recordsRes.data);
+      const fetchError = !statsRes.ok ? statsRes.error : !recordsRes.ok ? recordsRes.error : null;
+      setDataLoadError(fetchError);
+    });
     return () => {
       cancelled = true;
     };
@@ -213,9 +209,9 @@ const Leaderboard = observer(() => {
         </View>
       ) : null}
 
-      {fetchError ? (
+      {dataLoadError ? (
         <View style={styles.errorBanner}>
-          <Text style={styles.errorBannerText}>Could not load stats — {fetchError}</Text>
+          <Text style={styles.errorBannerText}>Could not load stats — {dataLoadError}</Text>
         </View>
       ) : null}
 
