@@ -138,6 +138,7 @@ const Leaderboard = observer(() => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
+  const [dataLoadError, setDataLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -153,25 +154,17 @@ const Leaderboard = observer(() => {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    setError(null);
+    setDataLoadError(null);
     const controller = getControllers().leaderboard;
     const statsFetcher = range === 'all' ? controller.career() : controller.last30Days();
-    void Promise.all([statsFetcher, controller.records()])
-      .then(([statsRes, recordsRes]) => {
-        if (cancelled) return;
-        setLoading(false);
-        if (!statsRes.ok || !recordsRes.ok) {
-          setError(!statsRes.ok ? statsRes.error : recordsRes.error);
-          return;
-        }
-        setEntries(statsRes.data);
-        setRecords(recordsRes.data);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setLoading(false);
-        setError(err instanceof Error ? err.message : 'Failed to load leaderboard');
-      });
+    void Promise.all([statsFetcher, controller.records()]).then(([statsRes, recordsRes]) => {
+      if (cancelled) return;
+      setLoading(false);
+      if (statsRes.ok) setEntries(statsRes.data);
+      if (recordsRes.ok) setRecords(recordsRes.data);
+      const fetchError = !statsRes.ok ? statsRes.error : !recordsRes.ok ? recordsRes.error : null;
+      setDataLoadError(fetchError);
+    });
     return () => {
       cancelled = true;
     };
@@ -216,9 +209,9 @@ const Leaderboard = observer(() => {
         </View>
       ) : null}
 
-      {error ? (
+      {dataLoadError ? (
         <View style={styles.errorBanner}>
-          <Text style={styles.errorBannerText}>Could not load leaderboard — {error}</Text>
+          <Text style={styles.errorBannerText}>Could not load stats — {dataLoadError}</Text>
         </View>
       ) : null}
 

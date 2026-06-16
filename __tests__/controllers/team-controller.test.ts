@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TeamController } from '@/controllers/team-controller';
 import { RootStore } from '@/stores/root-store';
 import type { AppSupabase } from '@/services/supabase';
+import { tokens } from '@/lib/theme';
 import type { ProfileRow, TeamRow } from '@/types/domain';
 
 vi.mock('@/services/push-events', () => ({
