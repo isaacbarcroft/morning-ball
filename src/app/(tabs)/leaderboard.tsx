@@ -136,6 +136,7 @@ const Leaderboard = observer(() => {
   const [stat, setStat] = useState<StatKey>('record');
   const [range, setRange] = useState<Range>('all');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
   const [dataLoadError, setDataLoadError] = useState<string | null>(null);
 
