@@ -60,7 +60,10 @@ export class LeaderboardController {
 
   async records(): Promise<ControllerResult<RecordEntry[]>> {
     const { data, error } = await this.supabase.from('profile_records').select('*');
-    if (error) return fail(error.message);
+    if (error) {
+      logger.warn('records fetch failed', { error: error.message });
+      return fail(error.message);
+    }
     return ok((data ?? []) as RecordEntry[]);
   }
 
